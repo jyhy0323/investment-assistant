@@ -3,17 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stock Data Collector &amp; Briefing Tool</title>
+  <title>AI 주식 종합 분석 앱 (Dify + FinanceDataReader)</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
   <div class="container">
     <header class="header">
-      <h1>Stock Data Collector &amp; Briefing Tool</h1>
-      <p class="subtitle">종목코드 6자리를 입력하면 네이버 금융 데이터와 최신 뉴스를 한눈에 수집합니다.</p>
+      <div class="header-top">
+        <h1>AI 주식 종합 분석 &amp; 브리핑 앱</h1>
+        <a href="/test" class="nav-test-link">1차 수집기 테스트 (/test)</a>
+      </div>
+      <p class="subtitle">네이버 금융·Serper 뉴스·FinanceDataReader 데이터를 수집해 Dify AI 챗봇이 분석해 드립니다.</p>
     </header>
 
-    <!-- 1. 검색창 구역 -->
+    <!-- 상단 탭 네비게이션 -->
+    <nav class="tab-nav" role="tablist">
+      <button type="button" class="tab-btn active" data-tab="fundamental">
+        ① 투자종목분석 (시세·실적·뉴스)
+      </button>
+      <button type="button" class="tab-btn" data-tab="technical">
+        ② 지표해석기 (차트·이평선·RSI)
+      </button>
+    </nav>
+
+    <!-- 공통 검색창 구역 -->
     <section class="search-section">
       <form id="search-form" class="search-form">
         <input
@@ -24,7 +37,7 @@
           placeholder="종목코드 6자리 입력 (예: 000660)"
           autocomplete="off"
         />
-        <button type="submit" id="fetch-btn">데이터 수집</button>
+        <button type="submit" id="analyze-btn">데이터 수집 &amp; AI 분석</button>
       </form>
       <div class="quick-examples">
         <span>빠른 입력:</span>
@@ -34,13 +47,26 @@
       </div>
     </section>
 
-    <!-- 로딩 & 오류 메시지 구역 -->
+    <!-- 상태 & 오류 메시지 구역 -->
     <div id="status-message" class="status-message hidden"></div>
     <div id="error-box" class="error-box hidden"></div>
 
-    <!-- 결과 표시 영역 (수집 완료 후 표시) -->
-    <main id="result-area" class="result-area hidden">
-      <!-- 2. 스냅샷 카드 구역 -->
+    <!-- [탭 1] 투자종목분석 패널 -->
+    <main id="panel-fundamental" class="tab-panel result-area hidden">
+      <!-- AI 챗봇 브리핑 카드 -->
+      <section class="card ai-card">
+        <div class="section-title-row">
+          <h2>🤖 Dify [투자종목분석] AI 브리핑</h2>
+          <span class="badge">Chatbot</span>
+        </div>
+        <div id="fund-ai-answer" class="ai-answer">분석 대기 중...</div>
+        <form id="fund-chat-form" class="followup-form hidden">
+          <input type="text" id="fund-followup-input" placeholder="이 종목에 대해 추가 질문을 입력하세요..." autocomplete="off" />
+          <button type="submit">질문하기</button>
+        </form>
+      </section>
+
+      <!-- 스냅샷 카드 -->
       <section class="card">
         <div class="stock-header">
           <div>
@@ -52,7 +78,6 @@
             <span id="change-rate" class="change-rate">-</span>
           </div>
         </div>
-
         <div class="snapshot-grid">
           <div class="metric-item">
             <span class="metric-label">시가총액</span>
@@ -69,7 +94,7 @@
         </div>
       </section>
 
-      <!-- 3. 기업실적분석 표 구역 -->
+      <!-- 기업실적분석 표 -->
       <section class="card">
         <div class="section-title-row">
           <h2>기업실적분석 (연간)</h2>
@@ -91,10 +116,88 @@
         </div>
       </section>
 
-      <!-- 4. 최신 뉴스 리스트 구역 -->
+      <!-- 최신 뉴스 리스트 -->
       <section class="card">
         <h2>최신 관련 뉴스 (Serper)</h2>
         <ul id="news-list" class="news-list"></ul>
+      </section>
+    </main>
+
+    <!-- [탭 2] 지표해석기 (기술적 분석) 패널 -->
+    <main id="panel-technical" class="tab-panel result-area hidden">
+      <!-- AI 챗봇 브리핑 카드 -->
+      <section class="card ai-card">
+        <div class="section-title-row">
+          <h2>📈 Dify [지표해석기] AI 기술적 분석</h2>
+          <span class="badge">Chatbot</span>
+        </div>
+        <div id="tech-ai-answer" class="ai-answer">분석 대기 중...</div>
+        <form id="tech-chat-form" class="followup-form hidden">
+          <input type="text" id="tech-followup-input" placeholder="차트나 지표에 대해 추가 질문을 입력하세요..." autocomplete="off" />
+          <button type="submit">질문하기</button>
+        </form>
+      </section>
+
+      <!-- 기술적 지표 요약 카드 -->
+      <section class="card">
+        <div class="section-title-row">
+          <h2>기술적 지표 요약 (FinanceDataReader)</h2>
+          <span id="tech-as-of" class="badge">기준일: -</span>
+        </div>
+        <div class="snapshot-grid tech-grid">
+          <div class="metric-item">
+            <span class="metric-label">최근 종가</span>
+            <strong id="tech-close" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">거래량</span>
+            <strong id="tech-volume" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">RSI (14일)</span>
+            <strong id="tech-rsi" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">5일 이동평균선 (MA5)</span>
+            <strong id="tech-ma5" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">20일 이동평균선 (MA20)</span>
+            <strong id="tech-ma20" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">60일 이동평균선 (MA60)</span>
+            <strong id="tech-ma60" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">최근 20일 최고가</span>
+            <strong id="tech-high20" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">최근 20일 최저가</span>
+            <strong id="tech-low20" class="metric-value">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- 최근 10일 일봉 표 -->
+      <section class="card">
+        <h2>최근 10거래일 일봉 데이터</h2>
+        <div class="table-wrapper">
+          <table class="financials-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>시가</th>
+                <th>고가</th>
+                <th>저가</th>
+                <th>종가</th>
+                <th>거래량</th>
+              </tr>
+            </thead>
+            <tbody id="candles-body"></tbody>
+          </table>
+        </div>
       </section>
     </main>
   </div>

@@ -362,3 +362,131 @@ body {
     flex-direction: column;
   }
 }
+
+
+/* ================= 2차 확장: 상단 탭 UI & Dify AI 카드 ================= */
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.header-top h1 {
+  margin-bottom: 0;
+}
+
+.nav-test-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  background-color: #e2e8f0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.nav-test-link:hover {
+  background-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 13px 16px;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #475569;
+  background-color: #e2e8f0;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  background-color: #cbd5e1;
+}
+
+.tab-btn.active {
+  background-color: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+}
+
+.ai-card {
+  border-left: 5px solid #2563eb;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.ai-answer {
+  font-size: 0.96rem;
+  color: #1e293b;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.followup-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.followup-form input {
+  flex: 1;
+  padding: 10px 14px;
+  font-size: 0.94rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+}
+
+.followup-form input:focus {
+  border-color: #2563eb;
+}
+
+.followup-form button {
+  padding: 10px 18px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #0f172a;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.followup-form button:hover {
+  background-color: #334155;
+}
+
+.followup-form button:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.tech-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 720px) {
+  .tech-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tab-nav {
+    flex-direction: column;
+  }
+}
