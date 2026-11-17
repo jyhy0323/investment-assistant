@@ -180,6 +180,23 @@
         </div>
       </section>
 
+      <!-- 주가 및 이동평균선 차트 카드 -->
+      <section class="card">
+        <div class="section-title-row">
+          <h2>주가 및 이동평균선 추이 (최근 60거래일)</h2>
+          <div class="chart-legend">
+            <span class="legend-item"><i class="dot dot-close"></i>종가</span>
+            <span class="legend-item"><i class="dot dot-ma5"></i>MA5</span>
+            <span class="legend-item"><i class="dot dot-ma20"></i>MA20</span>
+            <span class="legend-item"><i class="dot dot-ma60"></i>MA60</span>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="tech-chart"></canvas>
+          <div id="chart-tooltip" class="chart-tooltip hidden"></div>
+        </div>
+      </section>
+
       <!-- 최근 10일 일봉 표 -->
       <section class="card">
         <h2>최근 10거래일 일봉 데이터</h2>

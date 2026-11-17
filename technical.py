@@ -149,14 +149,38 @@ def calculate_price_summary(df) -> dict:
     }
 
 
+def extract_chart_series(df, count: int = 60) -> list[dict]:
+    """최근 N거래일 종가와 MA5/MA20/MA60 이동평균선 시계열을 차트용으로 정제한다."""
+    if df is None or df.empty:
+        return []
+
+    work = df.copy()
+    work["MA5"] = work["Close"].rolling(5).mean()
+    work["MA20"] = work["Close"].rolling(20).mean()
+    work["MA60"] = work["Close"].rolling(60).mean()
+
+    series = []
+    for idx, row in work.tail(count).iterrows():
+        date_str = idx.strftime("%Y-%m-%d") if hasattr(idx, "strftime") else str(idx)[:10]
+        series.append({
+            "date": date_str,
+            "close": _to_int(row.get("Close")),
+            "ma5": _to_int(row.get("MA5")),
+            "ma20": _to_int(row.get("MA20")),
+            "ma60": _to_int(row.get("MA60")),
+        })
+    return series
+
+
 def collect_technical(code: str) -> dict:
-    """Step 7 (2차): 일봉 조회(1회), 기술적 지표 계산, 최근 10거래일 정제 데이터를 통합 반환한다."""
+    """Step 7 (2차): 일봉 조회(1회), 기술적 지표 계산, 최근 10거래일 및 60일 차트 시계열을 통합 반환한다."""
     cleaned_code = str(code).strip() if code else ""
     result = {
         "code": cleaned_code,
         "as_of": None,
         "price_summary": {},
         "recent_candles": [],
+        "chart_series": [],
         "errors": [],
     }
 
@@ -177,6 +201,7 @@ def collect_technical(code: str) -> dict:
         result["recent_candles"] = candles
         result["as_of"] = candles[-1]["date"] if candles else None
         result["price_summary"] = calculate_price_summary(df)
+        result["chart_series"] = extract_chart_series(df, count=60)
         logger.info(
             f"[FDR]       기술적 지표 계산 완료 "
             f"(close={result['price_summary'].get('latest_close')}, "

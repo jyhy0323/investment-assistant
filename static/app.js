@@ -48,6 +48,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const techHigh20El = document.getElementById("tech-high20");
   const techLow20El = document.getElementById("tech-low20");
   const candlesBodyEl = document.getElementById("candles-body");
+  const techChartEl = document.getElementById("tech-chart");
+  const chartTooltipEl = document.getElementById("chart-tooltip");
+  let activeChartSeries = [];
 
   function showStatus(msg) {
     statusMessage.textContent = msg;
@@ -119,6 +122,7 @@ document.addEventListener("DOMContentLoaded", () => {
       panelFundamental.classList.add("hidden");
       if (state.technical.data) {
         panelTechnical.classList.remove("hidden");
+        drawTechChart(activeChartSeries);
       }
     }
   }
@@ -221,6 +225,126 @@ document.addEventListener("DOMContentLoaded", () => {
         candlesBodyEl.appendChild(tr);
       });
     }
+
+    activeChartSeries = data.chart_series || [];
+  }
+
+  function drawTechChart(series, hoverIdx = -1) {
+    if (!techChartEl || !series || series.length === 0) return;
+
+    const width = techChartEl.parentElement.clientWidth;
+    const height = techChartEl.parentElement.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    techChartEl.width = width * dpr;
+    techChartEl.height = height * dpr;
+
+    const ctx = techChartEl.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const pad = { top: 18, right: 16, bottom: 28, left: 74 };
+    const plotW = width - pad.left - pad.right;
+    const plotH = height - pad.top - pad.bottom;
+
+    // 최소/최대 가격 범위 계산
+    const values = [];
+    series.forEach((item) => {
+      ["close", "ma5", "ma20", "ma60"].forEach((k) => {
+        if (item[k] != null) values.push(item[k]);
+      });
+    });
+    if (values.length === 0) return;
+
+    let minVal = Math.min(...values);
+    let maxVal = Math.max(...values);
+    const span = maxVal - minVal || 1;
+    minVal = minVal - span * 0.06;
+    maxVal = maxVal + span * 0.06;
+
+    const getX = (idx) => pad.left + (series.length === 1 ? plotW / 2 : (idx / (series.length - 1)) * plotW);
+    const getY = (val) => pad.top + ((maxVal - val) / (maxVal - minVal)) * plotH;
+
+    // 가로 눈금선 및 Y축 가격 레이블 (5줄)
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i <= 4; i++) {
+      const ratio = i / 4;
+      const y = pad.top + ratio * plotH;
+      const priceVal = Math.round(maxVal - ratio * (maxVal - minVal));
+
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(width - pad.right, y);
+      ctx.stroke();
+
+      ctx.fillStyle = "#64748b";
+      ctx.fillText(formatNumber(priceVal), pad.left - 8, y);
+    }
+
+    // X축 날짜 레이블 (시작, 중간, 끝)
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const labelIndices = [0, Math.floor((series.length - 1) / 2), series.length - 1];
+    labelIndices.forEach((idx) => {
+      if (series[idx]) {
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(series[idx].date.slice(5), getX(idx), height - pad.bottom + 8);
+      }
+    });
+
+    // 라인 그리기 헬퍼
+    const drawLine = (key, color, lineWidth) => {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.beginPath();
+      let started = false;
+      series.forEach((item, idx) => {
+        const val = item[key];
+        if (val == null) return;
+        const x = getX(idx);
+        const y = getY(val);
+        if (!started) {
+          ctx.moveTo(x, y);
+          started = true;
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    };
+
+    drawLine("ma60", "#10b981", 1.8);
+    drawLine("ma20", "#f59e0b", 1.8);
+    drawLine("ma5", "#ef4444", 1.8);
+    drawLine("close", "#0f172a", 2.2);
+
+    // 마우스 호버 세로선 및 포인트 강조
+    if (hoverIdx >= 0 && hoverIdx < series.length) {
+      const hx = getX(hoverIdx);
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(hx, pad.top);
+      ctx.lineTo(hx, height - pad.bottom);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const item = series[hoverIdx];
+      [["close", "#0f172a"], ["ma5", "#ef4444"], ["ma20", "#f59e0b"], ["ma60", "#10b981"]].forEach(([k, c]) => {
+        if (item[k] != null) {
+          ctx.fillStyle = c;
+          ctx.beginPath();
+          ctx.arc(hx, getY(item[k]), 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    }
   }
 
   async function runAnalyze(code) {
@@ -275,6 +399,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       aiAnswerEl.textContent = "🤖 Dify AI 챗봇이 수집된 데이터를 분석하고 있습니다... (잠시만 기다려 주세요)";
       panelEl.classList.remove("hidden");
+      if (mode === "technical") {
+        drawTechChart(activeChartSeries);
+      }
       console.log("[RENDER]    화면 렌더링 완료");
 
       // 2단계: Dify AI 챗봇 분석 요청
@@ -387,5 +514,53 @@ document.addEventListener("DOMContentLoaded", () => {
   techChatForm.addEventListener("submit", (e) => {
     e.preventDefault();
     sendFollowup("technical", techFollowupInput, techAiAnswerEl, techChatForm);
+  });
+
+  if (techChartEl) {
+    techChartEl.addEventListener("mousemove", (e) => {
+      if (!activeChartSeries || activeChartSeries.length === 0) return;
+      const rect = techChartEl.getBoundingClientRect();
+      const padLeft = 74;
+      const padRight = 16;
+      const plotW = rect.width - padLeft - padRight;
+      const relX = e.clientX - rect.left - padLeft;
+      if (relX < 0 || relX > plotW) {
+        chartTooltipEl.classList.add("hidden");
+        drawTechChart(activeChartSeries, -1);
+        return;
+      }
+
+      const idx = Math.min(
+        activeChartSeries.length - 1,
+        Math.max(0, Math.round((relX / plotW) * (activeChartSeries.length - 1)))
+      );
+      const item = activeChartSeries[idx];
+      drawTechChart(activeChartSeries, idx);
+
+      chartTooltipEl.innerHTML = `
+        <strong>${escapeHtml(item.date)}</strong><br/>
+        종가: ${escapeHtml(formatNumber(item.close))}원<br/>
+        MA5: ${item.ma5 != null ? escapeHtml(formatNumber(item.ma5)) + "원" : "-"}<br/>
+        MA20: ${item.ma20 != null ? escapeHtml(formatNumber(item.ma20)) + "원" : "-"}<br/>
+        MA60: ${item.ma60 != null ? escapeHtml(formatNumber(item.ma60)) + "원" : "-"}
+      `;
+      chartTooltipEl.classList.remove("hidden");
+
+      const tipLeft = e.clientX - rect.left + 12;
+      const maxLeft = rect.width - chartTooltipEl.offsetWidth - 8;
+      chartTooltipEl.style.left = `${Math.max(8, Math.min(tipLeft, maxLeft))}px`;
+      chartTooltipEl.style.top = "12px";
+    });
+
+    techChartEl.addEventListener("mouseleave", () => {
+      chartTooltipEl.classList.add("hidden");
+      drawTechChart(activeChartSeries, -1);
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    if (currentTab === "technical" && activeChartSeries.length > 0) {
+      drawTechChart(activeChartSeries);
+    }
   });
 });
