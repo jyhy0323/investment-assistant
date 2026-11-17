@@ -77,6 +77,80 @@ document.addEventListener("DOMContentLoaded", () => {
     return div.innerHTML;
   }
 
+  function renderMarkdownSafe(rawText) {
+    const safe = escapeHtml(rawText || "");
+    const lines = safe.split(/\r?\n/);
+    let html = "";
+    let inList = false;
+
+    const formatInline = (line) =>
+      line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+      if (!line) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        continue;
+      }
+
+      if (line === "---" || line === "***") {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        html += "<hr/>";
+      } else if (line.startsWith("#### ")) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        html += `<h4>${formatInline(line.slice(5))}</h4>`;
+      } else if (line.startsWith("### ")) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        html += `<h3>${formatInline(line.slice(4))}</h3>`;
+      } else if (line.startsWith("&gt; ")) {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        html += `<blockquote>${formatInline(line.slice(5))}</blockquote>`;
+      } else if (line.startsWith("* ") || line.startsWith("- ")) {
+        if (!inList) {
+          html += "<ul>";
+          inList = true;
+        }
+        html += `<li>${formatInline(line.slice(2))}</li>`;
+      } else {
+        if (inList) {
+          html += "</ul>";
+          inList = false;
+        }
+        html += `<p>${formatInline(line)}</p>`;
+      }
+    }
+    if (inList) html += "</ul>";
+    return html;
+  }
+
+  function appendChatBubble(threadEl, role, text) {
+    const bubble = document.createElement("div");
+    bubble.className = `chat-bubble ${role}`;
+    if (role === "user") {
+      bubble.textContent = text;
+    } else {
+      bubble.innerHTML = renderMarkdownSafe(text);
+    }
+    threadEl.appendChild(bubble);
+    threadEl.scrollTop = threadEl.scrollHeight;
+    return bubble;
+  }
+
   function formatNumber(num) {
     if (num === null || num === undefined || Number.isNaN(Number(num))) {
       return "-";
@@ -397,7 +471,12 @@ document.addEventListener("DOMContentLoaded", () => {
         renderTechnical(collected);
       }
 
-      aiAnswerEl.textContent = "🤖 Dify AI 챗봇이 수집된 데이터를 분석하고 있습니다... (잠시만 기다려 주세요)";
+      aiAnswerEl.innerHTML = "";
+      const initialBubble = appendChatBubble(
+        aiAnswerEl,
+        "ai",
+        "🤖 Dify AI 챗봇이 수집된 데이터를 분석하고 있습니다... (잠시만 기다려 주세요)"
+      );
       panelEl.classList.remove("hidden");
       if (mode === "technical") {
         drawTechChart(activeChartSeries);
@@ -424,11 +503,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (analyzeData.answer) {
         console.log(`[DIFY]      Dify 챗봇 분석 요청 및 응답 완료 (${mode})`);
-        aiAnswerEl.textContent = analyzeData.answer;
+        initialBubble.innerHTML = renderMarkdownSafe(analyzeData.answer);
         state[mode].conversationId = analyzeData.conversation_id || "";
         chatFormEl.classList.remove("hidden");
       } else {
-        aiAnswerEl.textContent = "⚠️ AI 분석 답변을 생성하지 못했습니다. 위 오류 메시지를 확인해 주세요.";
+        initialBubble.innerHTML = renderMarkdownSafe("⚠️ AI 분석 답변을 생성하지 못했습니다. 위 오류 메시지를 확인해 주세요.");
       }
     } catch (err) {
       console.error(`[ERROR]     오류 발생 (${err.message})`);
@@ -449,7 +528,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     inputEl.value = "";
     submitBtn.disabled = true;
-    answerEl.textContent += `\n\n🙋 질문: ${question}\n🤖 답변 생성 중...`;
+    appendChatBubble(answerEl, "user", question);
+    const pendingBubble = appendChatBubble(answerEl, "ai", "🤖 답변 생성 중...");
 
     try {
       const res = await fetch("/analyze", {
@@ -471,12 +551,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (data.answer) {
         console.log(`[DIFY]      Dify 챗봇 분석 요청 및 응답 완료 (${mode} 후속질문)`);
-        answerEl.textContent = answerEl.textContent.replace("🤖 답변 생성 중...", `🤖 ${data.answer}`);
+        pendingBubble.innerHTML = renderMarkdownSafe(data.answer);
+        answerEl.scrollTop = answerEl.scrollHeight;
         if (data.conversation_id) {
           state[mode].conversationId = data.conversation_id;
         }
       } else {
-        answerEl.textContent = answerEl.textContent.replace("🤖 답변 생성 중...", "⚠️ 답변을 가져오지 못했습니다.");
+        pendingBubble.innerHTML = renderMarkdownSafe("⚠️ 답변을 가져오지 못했습니다. (일시적 오류이거나 정책상 답변이 제한된 질문일 수 있습니다.)");
       }
     } catch (err) {
       console.error(`[ERROR]     오류 발생 (${err.message})`);

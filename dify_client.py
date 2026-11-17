@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 import requests
 from dotenv import load_dotenv
 
@@ -75,30 +76,46 @@ def ask_dify(
 
     logger.info(f"[DIFY]      Dify 챗봇 API(/chat-messages) 호출 시작 (mode={mode}, app={app_label})")
 
-    try:
-        res = requests.post(url, headers=headers, json=payload, timeout=45)
-        if res.status_code != 200:
-            try:
-                err_detail = res.json().get("message", res.text[:200])
-            except ValueError:
-                err_detail = res.text[:200]
-            msg = f"Dify '{app_label}' 호출 실패 (상태코드: {res.status_code}, 사유: {err_detail})"
-            logger.error(f"[ERROR]     {msg}")
+    data = None
+    for attempt in range(2):
+        try:
+            res = requests.post(url, headers=headers, json=payload, timeout=45)
+            if res.status_code != 200:
+                try:
+                    err_detail = res.json().get("message", res.text[:200])
+                except ValueError:
+                    err_detail = res.text[:200]
+
+                is_transient = (
+                    res.status_code in (429, 500, 502, 503, 504)
+                    or "high demand" in err_detail.lower()
+                )
+                if is_transient and attempt == 0:
+                    logger.warning(f"[DIFY]      Dify '{app_label}' 일시 과부하 — 2초 후 재시도")
+                    time.sleep(2)
+                    continue
+
+                msg = f"Dify '{app_label}' 호출 실패 (상태코드: {res.status_code}, 사유: {err_detail})"
+                logger.error(f"[ERROR]     {msg}")
+                return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
+
+            data = res.json()
+            break
+        except requests.Timeout:
+            msg = f"Dify '{app_label}' 응답 시간이 초과되었습니다. (네트워크 타임아웃)"
+            logger.exception(f"[ERROR]     {msg}")
+            return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
+        except ValueError:
+            msg = f"Dify '{app_label}' 응답을 JSON으로 변환하는 데 실패했습니다."
+            logger.exception(f"[ERROR]     {msg}")
+            return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
+        except requests.RequestException:
+            msg = f"Dify '{app_label}' 서버에 연결하지 못했습니다."
+            logger.exception(f"[ERROR]     {msg}")
             return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
 
-        data = res.json()
-    except requests.Timeout:
-        msg = f"Dify '{app_label}' 응답 시간이 초과되었습니다. (네트워크 타임아웃)"
-        logger.exception(f"[ERROR]     {msg}")
-        return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
-    except ValueError:
-        msg = f"Dify '{app_label}' 응답을 JSON으로 변환하는 데 실패했습니다."
-        logger.exception(f"[ERROR]     {msg}")
-        return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
-    except requests.RequestException:
-        msg = f"Dify '{app_label}' 서버에 연결하지 못했습니다."
-        logger.exception(f"[ERROR]     {msg}")
-        return {"answer": None, "conversation_id": conversation_id or "", "error": msg}
+    if data is None:
+        return {"answer": None, "conversation_id": conversation_id or "", "error": f"Dify '{app_label}' 응답을 받지 못했습니다."}
 
     answer = data.get("answer")
     new_conv_id = data.get("conversation_id", conversation_id or "")
