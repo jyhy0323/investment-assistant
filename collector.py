@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import time
 import requests
 from dotenv import load_dotenv
 
@@ -13,8 +14,37 @@ HEADERS = {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/120.0.0.0 Safari/537.36"
-    )
+    ),
+    "Referer": "https://m.stock.naver.com/",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
 }
+
+
+def _request_naver_json(url: str, label: str) -> tuple[dict | None, str | None]:
+    """네이버 금융 API를 호출하고 409(일시 차단/충돌) 시 짧은 대기 후 1회 재시도한다."""
+    for attempt in range(2):
+        try:
+            res = requests.get(url, headers=HEADERS, timeout=5)
+            if res.status_code == 409 and attempt == 0:
+                logger.warning(f"[NAVER]    {label} 일시 409 응답 — 0.5초 후 재시도")
+                time.sleep(0.5)
+                continue
+            if res.status_code == 404:
+                return None, f"네이버 금융에서 해당 종목을 찾을 수 없습니다. (404)"
+            if res.status_code != 200:
+                return None, f"네이버 금융 {label} 접근 실패 (상태코드: {res.status_code})"
+            return res.json(), None
+        except requests.Timeout:
+            logger.exception(f"[ERROR]    {label} 네트워크 타임아웃")
+            return None, f"네이버 금융 {label} 응답 시간이 초과되었습니다. (네트워크 타임아웃)"
+        except ValueError:
+            logger.exception(f"[ERROR]    {label} JSON 변환 실패")
+            return None, f"네이버 금융 {label} 응답을 JSON으로 변환하는 데 실패했습니다."
+        except requests.RequestException:
+            logger.exception(f"[ERROR]    {label} 연결 실패")
+            return None, f"네이버 금융 {label} 서버에 연결하지 못했습니다."
+    return None, f"네이버 금융 {label} 접근에 실패했습니다."
 
 
 def validate_code(code: str) -> str | None:
@@ -87,34 +117,10 @@ def fetch_basic_info(code: str) -> dict:
     url = f"https://m.stock.naver.com/api/stock/{result['code']}/basic"
     logger.info(f"[NAVER]    네이버 금융 접근 시작 (User-Agent 적용) url={url}")
 
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=5)
-        if res.status_code == 404:
-            msg = f"네이버 금융에서 종목코드({result['code']})를 찾을 수 없습니다. (404)"
-            logger.error(f"[ERROR]    {msg}")
-            result["errors"].append(msg)
-            return result
-        if res.status_code != 200:
-            msg = f"네이버 금융 페이지 접근 실패 (상태코드: {res.status_code})"
-            logger.error(f"[ERROR]    {msg}")
-            result["errors"].append(msg)
-            return result
-
-        data = res.json()
-    except requests.Timeout:
-        msg = "네이버 금융 서버 응답 시간이 초과되었습니다. (네트워크 타임아웃)"
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
-        return result
-    except ValueError:
-        msg = "네이버 금융 응답 데이터를 JSON으로 변환하는 데 실패했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
-        return result
-    except requests.RequestException:
-        msg = "네이버 금융 서버에 연결하지 못했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
+    data, err = _request_naver_json(url, "기본 시세")
+    if err:
+        logger.error(f"[ERROR]    {err}")
+        result["errors"].append(err)
         return result
 
     stock_name = data.get("stockName")
@@ -143,28 +149,10 @@ def fetch_integration_info(code: str, result: dict) -> dict:
     url = f"https://m.stock.naver.com/api/stock/{code}/integration"
     logger.info(f"[NAVER]    투자정보(PER/PBR/시총) 접근 시작 url={url}")
 
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=5)
-        if res.status_code != 200:
-            msg = f"네이버 금융 투자정보 접근 실패 (상태코드: {res.status_code})"
-            logger.error(f"[ERROR]    {msg}")
-            result["errors"].append(msg)
-            return result
-        data = res.json()
-    except requests.Timeout:
-        msg = "투자정보 조회 중 네트워크 타임아웃이 발생했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
-        return result
-    except ValueError:
-        msg = "투자정보 응답 데이터를 JSON으로 변환하는 데 실패했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
-        return result
-    except requests.RequestException:
-        msg = "투자정보 서버에 연결하지 못했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
+    data, err = _request_naver_json(url, "투자정보")
+    if err:
+        logger.error(f"[ERROR]    {err}")
+        result["errors"].append(err)
         return result
 
     total_infos = data.get("totalInfos")
@@ -195,28 +183,10 @@ def fetch_financials(code: str, result: dict) -> dict:
     url = f"https://m.stock.naver.com/api/stock/{code}/finance/annual"
     logger.info(f"[NAVER]    기업실적분석 접근 시작 url={url}")
 
-    try:
-        res = requests.get(url, headers=HEADERS, timeout=5)
-        if res.status_code != 200:
-            msg = f"네이버 금융 기업실적 접근 실패 (상태코드: {res.status_code})"
-            logger.error(f"[ERROR]    {msg}")
-            result["errors"].append(msg)
-            return result
-        data = res.json()
-    except requests.Timeout:
-        msg = "기업실적 조회 중 네트워크 타임아웃이 발생했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
-        return result
-    except ValueError:
-        msg = "기업실적 응답 데이터를 JSON으로 변환하는 데 실패했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
-        return result
-    except requests.RequestException:
-        msg = "기업실적 서버에 연결하지 못했습니다."
-        logger.exception(f"[ERROR]    {msg}")
-        result["errors"].append(msg)
+    data, err = _request_naver_json(url, "기업실적")
+    if err:
+        logger.error(f"[ERROR]    {err}")
+        result["errors"].append(err)
         return result
 
     finance_info = data.get("financeInfo")
