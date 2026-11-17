@@ -1,0 +1,21 @@
+
+# SK하이닉스
+https://stock.naver.com/domestic/stock/000660/price
+https://stock.naver.com/domestic/stock/000660/info/company
+
+# 삼성전자
+https://stock.naver.com/domestic/stock/005930/price
+https://stock.naver.com/domestic/stock/000660/info/company
+
+
+이 링크는 네이버 금융 종목 종합정보 화면이야 
+ 초보자가 종목을 '숫자로' 파악하려면
+이화면에서 꼭 봐야 할 정보를 구역별로 정리해줘
+
+1)https://stock.naver.com/domestic/stock/000660/price 왼쪽 상단 시세
+2)https://stock.naver.com/domestic/stock/000660/price 시세 밑에 투자정보
+3)https://stock.naver.com/domestic/stock/000660/info/company 아래쪽 기업실적분석
+
+각 항목이 무엇을 의미하는지도 한 줄로 설명해줘
+아직 코드는 쓰지마. 그리고 이걸 가지고 크롤링 도구를 실제로 만들거니까 꾸며내지 않고 정확히
+실제로 데이터를 확인할 수 있게 페이지들을 분석해.
