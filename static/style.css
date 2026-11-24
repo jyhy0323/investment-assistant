@@ -1863,3 +1863,134 @@ body {
     max-width: none;
   }
 }
+
+
+/* ================= 시장·거시 & 지정학 패널 ================= */
+.macro-risk-banner {
+  border-radius: var(--toss-radius-md);
+  padding: 15px 18px;
+  margin-bottom: 16px;
+}
+
+.macro-risk-banner.low {
+  background-color: var(--toss-green-soft);
+  color: #027a48;
+}
+
+.macro-risk-banner.medium {
+  background-color: var(--toss-amber-soft);
+  color: #92400e;
+}
+
+.macro-risk-banner.high {
+  background-color: var(--toss-red-soft);
+  color: #c62828;
+}
+
+[data-theme="dark"] .macro-risk-banner.low { color: #6ee7b7; }
+[data-theme="dark"] .macro-risk-banner.medium { color: #fde68a; }
+[data-theme="dark"] .macro-risk-banner.high { color: #fca5a5; }
+
+.macro-risk-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 0.96rem;
+}
+
+.macro-risk-notes {
+  margin-left: 16px;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.macro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.macro-card {
+  background-color: var(--toss-surface-sub);
+  border-radius: var(--toss-radius-md);
+  padding: 14px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.macro-cat {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--toss-blue);
+}
+
+.macro-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--toss-text-sub);
+}
+
+.macro-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.macro-val {
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: var(--toss-text);
+}
+
+.macro-chg {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.event-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.event-guide-item {
+  background-color: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+
+.event-guide-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--toss-text);
+}
+
+.event-guide-cycle {
+  font-size: 0.74rem;
+  color: var(--toss-blue);
+  font-weight: 600;
+}
+
+.event-guide-impact {
+  font-size: 0.8rem;
+  color: var(--toss-text-sub);
+  line-height: 1.45;
+}
+
+@media (max-width: 680px) {
+  .macro-grid,
+  .event-guide-grid {
+    grid-template-columns: 1fr;
+  }
+}

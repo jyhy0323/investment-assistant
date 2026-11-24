@@ -1,10 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("[PAGE]      페이지 로드 완료 (모드: main)");
 
-  let currentTab = "fundamental"; // 'fundamental' | 'technical' | 'rebalance'
+  let currentTab = "fundamental"; // 'fundamental' | 'technical' | 'macro' | 'rebalance'
   const state = {
     fundamental: { code: "", data: null, conversationId: "" },
     technical: { code: "", data: null, conversationId: "" },
+    macro: { code: "MACRO", data: null, conversationId: "" },
     rebalance: { code: "PORTFOLIO", data: null, conversationId: "" },
   };
 
@@ -55,12 +56,29 @@ document.addEventListener("DOMContentLoaded", () => {
   // 패널 요소
   const panelFundamental = document.getElementById("panel-fundamental");
   const panelTechnical = document.getElementById("panel-technical");
+  const panelMacro = document.getElementById("panel-macro");
   const panelRebalance = document.getElementById("panel-rebalance");
 
   // 추천 질문 영역
   const fundQuickQuestionsEl = document.getElementById("fund-quick-questions");
   const techQuickQuestionsEl = document.getElementById("tech-quick-questions");
+  const macroQuickQuestionsEl = document.getElementById("macro-quick-questions");
   const rebalQuickQuestionsEl = document.getElementById("rebal-quick-questions");
+
+  // [탭 3] 시장·거시 요소
+  const macroAsOfEl = document.getElementById("macro-as-of");
+  const macroRefreshBtn = document.getElementById("macro-refresh-btn");
+  const macroRiskBannerEl = document.getElementById("macro-risk-banner");
+  const macroRiskLabelEl = document.getElementById("macro-risk-label");
+  const macroRiskNotesEl = document.getElementById("macro-risk-notes");
+  const macroIndicatorsGridEl = document.getElementById("macro-indicators-grid");
+  const macroUpcomingListEl = document.getElementById("macro-upcoming-list");
+  const macroEventGuidesEl = document.getElementById("macro-event-guides");
+  const macroGeoNewsListEl = document.getElementById("macro-geo-news-list");
+  const macroAiBtn = document.getElementById("macro-ai-btn");
+  const macroAiAnswerEl = document.getElementById("macro-ai-answer");
+  const macroChatForm = document.getElementById("macro-chat-form");
+  const macroFollowupInput = document.getElementById("macro-followup-input");
 
   // [탭 3] 리밸런싱 도우미 요소
   const rebalRowsEl = document.getElementById("rebal-rows");
@@ -428,9 +446,16 @@ document.addEventListener("DOMContentLoaded", () => {
     showErrors([]);
     panelFundamental.classList.add("hidden");
     panelTechnical.classList.add("hidden");
+    if (panelMacro) panelMacro.classList.add("hidden");
     if (panelRebalance) panelRebalance.classList.add("hidden");
 
-    if (currentTab === "rebalance") {
+    if (currentTab === "macro") {
+      if (searchSectionEl) searchSectionEl.classList.add("hidden");
+      if (panelMacro) panelMacro.classList.remove("hidden");
+      if (!state.macro.data) {
+        loadMacroData(false);
+      }
+    } else if (currentTab === "rebalance") {
       if (searchSectionEl) searchSectionEl.classList.add("hidden");
       if (panelRebalance) panelRebalance.classList.remove("hidden");
       if (state.rebalance.data) {
@@ -1225,12 +1250,173 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (mode === "technical") {
         techFollowupInput.value = q;
         sendFollowup("technical", techFollowupInput, techAiAnswerEl, techChatForm);
+      } else if (mode === "macro") {
+        macroFollowupInput.value = q;
+        sendFollowup("macro", macroFollowupInput, macroAiAnswerEl, macroChatForm);
       } else if (mode === "rebalance") {
         rebalFollowupInput.value = q;
         sendFollowup("rebalance", rebalFollowupInput, rebalAiAnswerEl, rebalChatForm);
       }
     });
   });
+
+  // ================= [탭 3] 시장·거시 & 지정학 로직 =================
+  function formatMacroValue(val, unit) {
+    if (val == null || Number.isNaN(Number(val))) return "-";
+    if (unit === "$") return `$${Number(val).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (unit === "%") return `${Number(val).toFixed(2)}%`;
+    if (unit === "원") return `${Number(val).toLocaleString("ko-KR", { maximumFractionDigits: 1 })}원`;
+    return Number(val).toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderMacroNewsList(listEl, items, emptyMsg) {
+    if (!listEl) return;
+    if (!items || items.length === 0) {
+      listEl.innerHTML = `<li class="news-item">${escapeHtml(emptyMsg)}</li>`;
+      return;
+    }
+    listEl.innerHTML = items
+      .map((item) => {
+        const desc = item.description ? `<p class="news-desc">${escapeHtml(item.description)}</p>` : "";
+        return `
+          <li class="news-item">
+            <a class="news-title" href="${escapeHtml(item.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title || "제목 없음")}</a>
+            ${desc}
+            <span class="news-meta">${escapeHtml(item.published || "")}</span>
+          </li>
+        `;
+      })
+      .join("");
+  }
+
+  function renderMacro(data) {
+    if (macroAsOfEl) macroAsOfEl.textContent = `기준: ${data.as_of || "-"}`;
+    if (macroRiskBannerEl) {
+      macroRiskBannerEl.className = `macro-risk-banner ${data.risk_level || "medium"}`;
+    }
+    if (macroRiskLabelEl) macroRiskLabelEl.textContent = data.risk_label || "-";
+    if (macroRiskNotesEl) {
+      macroRiskNotesEl.innerHTML = (data.risk_notes || []).map((n) => `<li>${escapeHtml(n)}</li>`).join("");
+    }
+
+    if (macroIndicatorsGridEl) {
+      macroIndicatorsGridEl.innerHTML = (data.indicators || [])
+        .map((ind) => {
+          const chg = ind.change_pct;
+          const chgText = chg == null ? "-" : chg > 0 ? `+${chg}%` : `${chg}%`;
+          const chgCls = chg == null ? "net-flat" : chg > 0 ? "net-buy" : chg < 0 ? "net-sell" : "net-flat";
+          return `
+            <div class="macro-card">
+              <span class="macro-cat">${escapeHtml(ind.category)}</span>
+              <span class="macro-name">${escapeHtml(ind.name)} <span class="help-tip" data-tip="${escapeHtml(ind.tip || "")}">?</span></span>
+              <div class="macro-val-row">
+                <strong class="macro-val">${escapeHtml(formatMacroValue(ind.value, ind.unit))}</strong>
+                <span class="macro-chg ${chgCls}">${escapeHtml(chgText)}</span>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    renderMacroNewsList(macroUpcomingListEl, data.upcoming_news, "이번 주 주요 경제지표 일정 뉴스를 불러오지 못했습니다.");
+    renderMacroNewsList(macroGeoNewsListEl, data.geo_news, "지정학·유가·금리 속보를 불러오지 못했습니다.");
+
+    if (macroEventGuidesEl) {
+      macroEventGuidesEl.innerHTML = (data.event_guides || [])
+        .map(
+          (g) => `
+            <div class="event-guide-item">
+              <div class="event-guide-top">
+                <span>${escapeHtml(g.name)}</span>
+                <span class="event-guide-cycle">${escapeHtml(g.cycle)}</span>
+              </div>
+              <p class="event-guide-impact">${escapeHtml(g.impact)}</p>
+            </div>
+          `
+        )
+        .join("");
+    }
+  }
+
+  async function loadMacroData(force = false) {
+    showErrors([]);
+    showStatus("글로벌 거시·지정학 7대 지표와 발표 예정 일정을 불러오고 있습니다...");
+    if (macroRefreshBtn) macroRefreshBtn.disabled = true;
+
+    try {
+      const res = await fetch(force ? "/macro?refresh=1" : "/macro");
+      const data = await res.json();
+      if (data.errors && data.errors.length > 0) showErrors(data.errors);
+      if (!res.ok) return;
+
+      state.macro.data = data;
+      renderMacro(data);
+      console.log("[RENDER]    시장·거시 대시보드 렌더링 완료");
+    } catch (err) {
+      console.error(`[ERROR]     오류 발생 (${err.message})`);
+      showErrors(["거시·지정학 데이터를 불러오는 중 오류가 발생했습니다."]);
+    } finally {
+      hideStatus();
+      if (macroRefreshBtn) macroRefreshBtn.disabled = false;
+    }
+  }
+
+  async function runMacroAi() {
+    if (!state.macro.data) {
+      await loadMacroData(false);
+    }
+    if (!state.macro.data) return;
+
+    showErrors([]);
+    showStatus("Dify AI가 오늘의 거시·지정학 리스크와 주요 일정을 브리핑하고 있습니다...");
+    macroAiBtn.disabled = true;
+    macroAiAnswerEl.innerHTML = "";
+    const initialBubble = appendChatBubble(
+      macroAiAnswerEl,
+      "ai",
+      "Dify AI가 금리·유가·환율·VIX 및 지정학 속보를 분석하고 있습니다... (잠시만 기다려 주세요)"
+    );
+
+    try {
+      const res = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: "MACRO",
+          mode: "macro",
+          cached_data: state.macro.data,
+        }),
+      });
+      const data = await res.json();
+      if (data.errors && data.errors.length > 0) showErrors(data.errors);
+
+      if (data.answer) {
+        console.log("[DIFY]      Dify 챗봇 분석 요청 및 응답 완료 (macro)");
+        initialBubble.innerHTML = renderMarkdownSafe(data.answer);
+        state.macro.conversationId = data.conversation_id || "";
+        macroChatForm.classList.remove("hidden");
+        if (macroQuickQuestionsEl) macroQuickQuestionsEl.classList.remove("hidden");
+      } else {
+        initialBubble.innerHTML = renderMarkdownSafe("AI 거시 브리핑을 생성하지 못했습니다. 위 오류 메시지를 확인해 주세요.");
+      }
+    } catch (err) {
+      console.error(`[ERROR]     오류 발생 (${err.message})`);
+      showErrors(["거시 AI 브리핑 요청 중 오류가 발생했습니다."]);
+    } finally {
+      hideStatus();
+      macroAiBtn.disabled = false;
+    }
+  }
+
+  if (macroRefreshBtn) macroRefreshBtn.addEventListener("click", () => loadMacroData(true));
+  if (macroAiBtn) macroAiBtn.addEventListener("click", runMacroAi);
+  if (macroChatForm) {
+    macroChatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      sendFollowup("macro", macroFollowupInput, macroAiAnswerEl, macroChatForm);
+    });
+  }
 
   // ================= [탭 3] 리밸런싱 도우미 로직 =================
   const STORAGE_KEY = "investment_assistant_portfolio_v1";

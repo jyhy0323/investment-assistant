@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from collector import collect_all, fetch_basic_info
 from technical import collect_technical
 from dify_client import ask_dify, build_analysis_prompt
+from macro import collect_macro_overview
 
 # .env 파일에서 환경변수 로드
 load_dotenv()
@@ -168,7 +169,7 @@ def analyze_stock():
 
     logger.info(f"[REQUEST]  POST /analyze mode={mode} code={code} has_conv={bool(conversation_id)}")
 
-    if mode not in ("fundamental", "technical", "rebalance"):
+    if mode not in ("fundamental", "technical", "rebalance", "macro"):
         msg = f"지원하지 않는 분석 모드입니다: {mode}"
         logger.warning(f"[ERROR]    {msg}")
         return jsonify({"mode": mode, "code": code, "data": None, "answer": None, "conversation_id": "", "errors": [msg]}), 400
@@ -183,6 +184,22 @@ def analyze_stock():
             "data": cached_data,
             "answer": dify_res.get("answer"),
             "conversation_id": dify_res.get("conversation_id", conversation_id),
+            "errors": errors,
+        }), 200
+
+    # 거시·지정학 AI 브리핑 모드
+    if mode == "macro":
+        macro_data = cached_data if isinstance(cached_data, dict) and cached_data.get("indicators") else collect_macro_overview()
+        query = build_analysis_prompt(mode="macro", stock_data=macro_data, user_question=question)
+        dify_res = ask_dify(mode="macro", query=query, conversation_id=conversation_id)
+        errors = [dify_res["error"]] if dify_res.get("error") else []
+        logger.info(f"[RESPONSE] 거시·지정학 AI 브리핑 완료 / answer_len={len(dify_res.get('answer') or '')}, errors={len(errors)}건")
+        return jsonify({
+            "mode": "macro",
+            "code": "MACRO",
+            "data": macro_data,
+            "answer": dify_res.get("answer"),
+            "conversation_id": dify_res.get("conversation_id", ""),
             "errors": errors,
         }), 200
 
@@ -247,6 +264,19 @@ def analyze_stock():
         "conversation_id": dify_res.get("conversation_id", ""),
         "errors": errors,
     }), 200
+
+
+@app.route("/macro", methods=["GET"])
+def get_macro():
+    """거시경제·지정학 7대 지표, 발표 예정 주요 일정 및 속보를 반환한다."""
+    force = request.args.get("refresh") == "1"
+    logger.info(f"[REQUEST]  GET /macro refresh={force}")
+    try:
+        data = collect_macro_overview(force_refresh=force)
+        return jsonify(data), 200
+    except Exception:
+        logger.exception("[ERROR]    거시·지정학 데이터 수집 실패")
+        return jsonify({"errors": ["거시·지정학 데이터를 불러오는 중 오류가 발생했습니다."]}), 500
 
 
 @app.route("/rebalance", methods=["POST"])

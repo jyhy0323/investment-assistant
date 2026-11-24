@@ -13,6 +13,7 @@ MODE_KEY_MAP = {
     "fundamental": ("DIFY_FUNDAMENTAL_API_KEY", "투자종목분석"),
     "technical": ("DIFY_TECHNICAL_API_KEY", "지표해석기"),
     "rebalance": ("DIFY_FUNDAMENTAL_API_KEY", "포트폴리오 리밸런싱"),
+    "macro": ("DIFY_FUNDAMENTAL_API_KEY", "거시·지정학 브리핑"),
 }
 
 
@@ -51,6 +52,18 @@ def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") 
             "3) DART 최근 공식 공시 중 주주가 주목해야 할 호재(자사주·수주·배당) 또는 주의(유상증자·CB 등) 공시 여부\n"
             "4) 단기·중장기 관점에서 주린이가 볼 때 [긍정적인 점]과 [부정적/주의할 점] 비교 정리\n"
             "5) 최신 뉴스 핵심 이슈 요약 (매수/매도 단정 대신 객관적 근거 중심)\n\n"
+            f"{data_json}"
+        )
+
+    if mode == "macro":
+        return (
+            "아래는 오늘의 거시경제·지정학 7대 지표(코스피, 나스닥, VIX 공포지수, 미 10년 국채금리, 원/달러 환율, WTI 유가, 국제 금), "
+            "이번 주 발표 예정 경제지표 뉴스, 그리고 지정학·전쟁·금리 속보 데이터입니다. "
+            "주식 초보자(주린이)도 한눈에 이해할 수 있도록 다음을 브리핑해 주세요:\n"
+            "1) 오늘의 글로벌·국내 증시 분위기 요약 (금리·유가·환율·VIX 핵심 해석)\n"
+            "2) 전쟁·유가·금리 등 지정학/거시 변수가 현재 시장에 주는 [긍정 요인]과 [주의 요인]\n"
+            "3) 이번 주 발표 예정인 굵직한 경제지표·실적·파생 일정 중 꼭 체크할 포인트\n"
+            "4) 주린이가 이런 거시 환경에서 유의해야 할 리스크 관리 팁\n\n"
             f"{data_json}"
         )
 
