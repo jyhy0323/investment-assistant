@@ -217,8 +217,19 @@ def calculate_support_resistance(df, as_float: bool = False) -> dict:
     s2_raw = float(recent_60["Low"].min())
 
     # 현재가가 이미 20일 고가와 같다면 60일 고가를 1차 저항선으로 사용
-    primary_r = r2_raw if (latest >= r1_raw * 0.995 and r2_raw > r1_raw) else r1_raw
-    primary_s = s2_raw if (latest <= s1_raw * 1.005 and s2_raw < s1_raw) else s1_raw
+    use_60_r = latest >= r1_raw * 0.995 and r2_raw > r1_raw
+    use_60_s = latest <= s1_raw * 1.005 and s2_raw < s1_raw
+    primary_r = r2_raw if use_60_r else r1_raw
+    primary_s = s2_raw if use_60_s else s1_raw
+
+    r_df = recent_60 if use_60_r else recent_20
+    s_df = recent_60 if use_60_s else recent_20
+    r_idx = r_df["High"].idxmax()
+    s_idx = s_df["Low"].idxmin()
+    r_date = r_idx.strftime("%Y-%m-%d") if hasattr(r_idx, "strftime") else str(r_idx)[:10]
+    s_date = s_idx.strftime("%Y-%m-%d") if hasattr(s_idx, "strftime") else str(s_idx)[:10]
+    r_period_txt = "최근 60거래일(약 3개월)" if use_60_r else "최근 20거래일(약 1개월)"
+    s_period_txt = "최근 60거래일(약 3개월)" if use_60_s else "최근 20거래일(약 1개월)"
 
     to_r_pct = _to_float(((primary_r - latest) / latest) * 100.0, 2) if latest > 0 else None
     to_s_pct = _to_float(((latest - primary_s) / latest) * 100.0, 2) if latest > 0 else None
@@ -235,6 +246,15 @@ def calculate_support_resistance(df, as_float: bool = False) -> dict:
     else:
         position_label = "지지선·저항선 사이 박스권 중립 구간"
 
+    resistance_reason = (
+        f"{r_date}에 기록한 {r_period_txt} 최고가({_fmt(primary_r)})로, "
+        f"이전 고점 매수 물량(매물대)과 차익실현 매도가 몰리기 쉬운 가격대입니다."
+    )
+    support_reason = (
+        f"{s_date}에 기록한 {s_period_txt} 최저가({_fmt(primary_s)})로, "
+        f"주가가 하락할 때 저가 매수세가 유입되어 단기 바닥을 형성했던 가격대입니다."
+    )
+
     bullish_msg = (
         f"저항선({_fmt(primary_r)})을 거래량과 함께 돌파하면 매물대를 뚫고 "
         f"상승 추세 전환 및 추가 상승 모멘텀이 강화될 수 있습니다."
@@ -249,6 +269,10 @@ def calculate_support_resistance(df, as_float: bool = False) -> dict:
         "resistance_2": conv(r2_raw),
         "support_1": conv(primary_s),
         "support_2": conv(s2_raw),
+        "resistance_date": r_date,
+        "support_date": s_date,
+        "resistance_reason": resistance_reason,
+        "support_reason": support_reason,
         "to_resistance_pct": to_r_pct,
         "to_support_pct": to_s_pct,
         "position_label": position_label,

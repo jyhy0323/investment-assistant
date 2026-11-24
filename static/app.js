@@ -775,6 +775,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const posEl = document.getElementById("sr-position-label");
       const resValEl = document.getElementById("sr-resistance-val");
       const supValEl = document.getElementById("sr-support-val");
+      const resReasonEl = document.getElementById("sr-resistance-reason");
+      const supReasonEl = document.getElementById("sr-support-reason");
       const bullMsgEl = document.getElementById("sr-bullish-msg");
       const bearMsgEl = document.getElementById("sr-bearish-msg");
 
@@ -789,6 +791,8 @@ document.addEventListener("DOMContentLoaded", () => {
         supValEl.textContent = `${formatPrice(activeSupportResistance.support_1, cur)}` +
           (toS != null ? ` (-${toS}%)` : "");
       }
+      if (resReasonEl) resReasonEl.textContent = `📌 근거: ${activeSupportResistance.resistance_reason || "-"}`;
+      if (supReasonEl) supReasonEl.textContent = `📌 근거: ${activeSupportResistance.support_reason || "-"}`;
       if (bullMsgEl) bullMsgEl.textContent = activeSupportResistance.bullish_trigger || "-";
       if (bearMsgEl) bearMsgEl.textContent = activeSupportResistance.bearish_trigger || "-";
     } else if (srSectionEl) {

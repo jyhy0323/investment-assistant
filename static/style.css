@@ -1584,3 +1584,11 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.sr-reason {
+  font-size: 0.82rem;
+  opacity: 0.88;
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(128, 128, 128, 0.28);
+}
