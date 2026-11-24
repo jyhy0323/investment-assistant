@@ -12,6 +12,7 @@ logger = logging.getLogger("StockApp")
 MODE_KEY_MAP = {
     "fundamental": ("DIFY_FUNDAMENTAL_API_KEY", "투자종목분석"),
     "technical": ("DIFY_TECHNICAL_API_KEY", "지표해석기"),
+    "rebalance": ("DIFY_FUNDAMENTAL_API_KEY", "포트폴리오 리밸런싱"),
 }
 
 
@@ -30,6 +31,17 @@ def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") 
             "2) 개인·외국인·기관의 단기(5일) 및 중기(20일) 수급 동향과 외국인 지분율 변화 해석\n"
             "3) 단기·중장기 관점에서 주린이가 볼 때 [긍정적인 점]과 [부정적/주의할 점] 비교 정리\n"
             "4) 최신 뉴스 핵심 이슈 요약 (매수/매도 단정 대신 객관적 근거 중심)\n\n"
+            f"{data_json}"
+        )
+
+    if mode == "rebalance":
+        return (
+            "아래는 주식 초보자(주린이)의 현재 보유 포트폴리오(종목별 평가금액·현재 비중·목표 비중·현금 비중·권장 리밸런싱 수량) 데이터입니다. "
+            "초보자 눈높이에서 다음을 객관적이고 알기 쉽게 진단해 주세요:\n"
+            "1) 현재 포트폴리오의 분산 정도와 편중(쏠림) 리스크 진단\n"
+            "2) 현금 비중의 적정성 평가\n"
+            "3) 목표 비중으로 리밸런싱할 때 주의할 점과 실행 팁 (분할 조정, 세금/수수료 고려 등)\n"
+            "4) 지금 포트폴리오의 [긍정적인 점]과 [개선하면 좋을 점] 요약\n\n"
             f"{data_json}"
         )
 

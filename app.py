@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, jsonify, render_template, request
 from dotenv import load_dotenv
-from collector import collect_all
+from collector import collect_all, fetch_basic_info
 from technical import collect_technical
 from dify_client import ask_dify, build_analysis_prompt
 
@@ -165,7 +165,7 @@ def analyze_stock():
 
     logger.info(f"[REQUEST]  POST /analyze mode={mode} code={code} has_conv={bool(conversation_id)}")
 
-    if mode not in ("fundamental", "technical"):
+    if mode not in ("fundamental", "technical", "rebalance"):
         msg = f"지원하지 않는 분석 모드입니다: {mode}"
         logger.warning(f"[ERROR]    {msg}")
         return jsonify({"mode": mode, "code": code, "data": None, "answer": None, "conversation_id": "", "errors": [msg]}), 400
@@ -180,6 +180,24 @@ def analyze_stock():
             "data": cached_data,
             "answer": dify_res.get("answer"),
             "conversation_id": dify_res.get("conversation_id", conversation_id),
+            "errors": errors,
+        }), 200
+
+    # 포트폴리오 리밸런싱 AI 진단 모드
+    if mode == "rebalance":
+        if not isinstance(cached_data, dict) or not cached_data.get("items"):
+            msg = "먼저 리밸런싱 계산을 실행한 뒤 AI 진단을 요청해 주세요."
+            return jsonify({"mode": mode, "code": "", "data": None, "answer": None, "conversation_id": "", "errors": [msg]}), 400
+        query = build_analysis_prompt(mode="rebalance", stock_data=cached_data, user_question=question)
+        dify_res = ask_dify(mode="rebalance", query=query, conversation_id=conversation_id)
+        errors = [dify_res["error"]] if dify_res.get("error") else []
+        logger.info(f"[RESPONSE] 리밸런싱 AI 진단 완료 / answer_len={len(dify_res.get('answer') or '')}, errors={len(errors)}건")
+        return jsonify({
+            "mode": "rebalance",
+            "code": "PORTFOLIO",
+            "data": cached_data,
+            "answer": dify_res.get("answer"),
+            "conversation_id": dify_res.get("conversation_id", ""),
             "errors": errors,
         }), 200
 
@@ -224,6 +242,134 @@ def analyze_stock():
         "data": collected,
         "answer": dify_res.get("answer"),
         "conversation_id": dify_res.get("conversation_id", ""),
+        "errors": errors,
+    }), 200
+
+
+@app.route("/rebalance", methods=["POST"])
+def rebalance_portfolio():
+    """보유 종목(코드, 수량, 목표 비중)과 현금을 받아 실시간 시세로 리밸런싱 수량을 계산한다."""
+    payload = request.get_json(silent=True) or {}
+    raw_items = payload.get("items", [])
+    try:
+        cash = max(0, int(float(payload.get("cash", 0) or 0)))
+    except (TypeError, ValueError):
+        cash = 0
+    try:
+        cash_target_pct = max(0.0, float(payload.get("cash_target_pct", 0) or 0))
+    except (TypeError, ValueError):
+        cash_target_pct = 0.0
+
+    logger.info(f"[REQUEST]  POST /rebalance items={len(raw_items)} cash={cash}")
+
+    if not isinstance(raw_items, list) or len(raw_items) == 0:
+        return jsonify({"errors": ["최소 1개 이상의 보유 종목을 입력해 주세요."]}), 400
+
+    errors = []
+    parsed_items = []
+    seen_codes = set()
+
+    for row in raw_items:
+        if not isinstance(row, dict):
+            continue
+        code = str(row.get("code", "")).strip()
+        if not code:
+            continue
+        if code in seen_codes:
+            errors.append(f"중복된 종목코드({code})는 첫 번째 항목만 계산했습니다.")
+            continue
+        seen_codes.add(code)
+
+        try:
+            qty = max(0, int(float(row.get("qty", 0) or 0)))
+        except (TypeError, ValueError):
+            qty = 0
+        try:
+            target_pct = max(0.0, float(row.get("target_pct", 0) or 0))
+        except (TypeError, ValueError):
+            target_pct = 0.0
+
+        basic = fetch_basic_info(code)
+        if not basic.get("name") or not basic.get("snapshot", {}).get("current_price"):
+            err_msg = "; ".join(basic.get("errors") or [f"종목({code}) 시세를 불러오지 못했습니다."])
+            errors.append(err_msg)
+            continue
+
+        price = basic["snapshot"]["current_price"]
+        eval_amount = price * qty
+        parsed_items.append({
+            "code": code,
+            "name": basic["name"],
+            "current_price": price,
+            "qty": qty,
+            "eval_amount": eval_amount,
+            "target_pct": round(target_pct, 2),
+        })
+
+    if not parsed_items:
+        return jsonify({"errors": errors or ["유효한 종목 시세를 불러오지 못했습니다."]}), 400
+
+    total_stock_value = sum(item["eval_amount"] for item in parsed_items)
+    total_value = total_stock_value + cash
+    target_sum = round(sum(item["target_pct"] for item in parsed_items) + cash_target_pct, 2)
+
+    warnings = []
+    if abs(target_sum - 100.0) > 0.1:
+        warnings.append(f"목표 비중 합계가 {target_sum}%입니다. 정확히 100%에 맞추면 더 정밀한 리밸런싱이 가능합니다.")
+
+    result_items = []
+    for item in parsed_items:
+        current_pct = round((item["eval_amount"] / total_value) * 100, 2) if total_value > 0 else 0.0
+        target_amount = int(round(total_value * (item["target_pct"] / 100.0)))
+        diff_amount = target_amount - item["eval_amount"]
+        diff_pct = round(item["target_pct"] - current_pct, 2)
+
+        price = item["current_price"]
+        if diff_amount > 0:
+            suggested_shares = int(diff_amount // price)
+            action = "BUY" if suggested_shares > 0 else "HOLD"
+        elif diff_amount < 0:
+            suggested_shares = -int(abs(diff_amount) // price)
+            action = "SELL" if suggested_shares < 0 else "HOLD"
+        else:
+            suggested_shares = 0
+            action = "HOLD"
+
+        if current_pct >= 50.0:
+            warnings.append(f"'{item['name']}' 비중이 {current_pct}%로 절반 이상 편중되어 있습니다. 분산 투자를 고려해 보세요.")
+
+        result_items.append({
+            **item,
+            "current_pct": current_pct,
+            "target_amount": target_amount,
+            "diff_amount": diff_amount,
+            "diff_pct": diff_pct,
+            "suggested_shares": suggested_shares,
+            "action": action,
+        })
+
+    cash_current_pct = round((cash / total_value) * 100, 2) if total_value > 0 else 0.0
+    cash_target_amount = int(round(total_value * (cash_target_pct / 100.0)))
+    cash_diff_amount = cash_target_amount - cash
+
+    if total_value > 0 and cash_current_pct < 5.0:
+        warnings.append(f"현재 현금 비중이 {cash_current_pct}%로 매우 낮습니다. 급락장 대응용 여유 현금을 점검해 보세요.")
+
+    logger.info(f"[RESPONSE] 리밸런싱 계산 완료 / 종목={len(result_items)}개, 총자산={total_value}원")
+
+    return jsonify({
+        "total_value": total_value,
+        "total_stock_value": total_stock_value,
+        "target_sum_pct": target_sum,
+        "cash": {
+            "amount": cash,
+            "current_pct": cash_current_pct,
+            "target_pct": round(cash_target_pct, 2),
+            "target_amount": cash_target_amount,
+            "diff_amount": cash_diff_amount,
+        },
+        "items": result_items,
+        "warnings": warnings,
         "errors": errors,
     }), 200
 

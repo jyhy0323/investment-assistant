@@ -1,24 +1,52 @@
 document.addEventListener("DOMContentLoaded", () => {
   console.log("[PAGE]      페이지 로드 완료 (모드: main)");
 
-  let currentTab = "fundamental"; // 'fundamental' | 'technical'
+  let currentTab = "fundamental"; // 'fundamental' | 'technical' | 'rebalance'
   const state = {
     fundamental: { code: "", data: null, conversationId: "" },
     technical: { code: "", data: null, conversationId: "" },
+    rebalance: { code: "PORTFOLIO", data: null, conversationId: "" },
   };
 
   // 공통 요소
   const tabBtns = document.querySelectorAll(".tab-btn");
+  const searchSectionEl = document.getElementById("search-section");
   const searchForm = document.getElementById("search-form");
   const codeInput = document.getElementById("stock-code");
   const analyzeBtn = document.getElementById("analyze-btn");
-  const exampleBtns = document.querySelectorAll(".example-btn");
+  const exampleBtns = document.querySelectorAll("#search-section .example-btn");
   const statusMessage = document.getElementById("status-message");
   const errorBox = document.getElementById("error-box");
 
   // 패널 요소
   const panelFundamental = document.getElementById("panel-fundamental");
   const panelTechnical = document.getElementById("panel-technical");
+  const panelRebalance = document.getElementById("panel-rebalance");
+
+  // 추천 질문 영역
+  const fundQuickQuestionsEl = document.getElementById("fund-quick-questions");
+  const techQuickQuestionsEl = document.getElementById("tech-quick-questions");
+  const rebalQuickQuestionsEl = document.getElementById("rebal-quick-questions");
+
+  // [탭 3] 리밸런싱 도우미 요소
+  const rebalRowsEl = document.getElementById("rebal-rows");
+  const rebalAddRowBtn = document.getElementById("rebal-add-row-btn");
+  const rebalSampleBtn = document.getElementById("rebal-sample-btn");
+  const rebalCashInput = document.getElementById("rebal-cash-input");
+  const rebalCashTargetInput = document.getElementById("rebal-cash-target");
+  const rebalCalcBtn = document.getElementById("rebal-calc-btn");
+  const rebalTargetSumHintEl = document.getElementById("rebal-target-sum-hint");
+  const rebalanceResultEl = document.getElementById("rebalance-result");
+  const rebalWarningsEl = document.getElementById("rebal-warnings");
+  const rebalTotalBadgeEl = document.getElementById("rebal-total-badge");
+  const rebalCurrentDonutEl = document.getElementById("rebal-current-donut");
+  const rebalTargetDonutEl = document.getElementById("rebal-target-donut");
+  const rebalLegendEl = document.getElementById("rebal-legend");
+  const rebalTableBodyEl = document.getElementById("rebal-table-body");
+  const rebalAiBtn = document.getElementById("rebal-ai-btn");
+  const rebalAiAnswerEl = document.getElementById("rebal-ai-answer");
+  const rebalChatForm = document.getElementById("rebal-chat-form");
+  const rebalFollowupInput = document.getElementById("rebal-followup-input");
 
   // [탭 1] 투자종목분석 요소
   const fundAiAnswerEl = document.getElementById("fund-ai-answer");
@@ -351,14 +379,24 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     showErrors([]);
-    if (currentTab === "fundamental") {
-      panelTechnical.classList.add("hidden");
+    panelFundamental.classList.add("hidden");
+    panelTechnical.classList.add("hidden");
+    if (panelRebalance) panelRebalance.classList.add("hidden");
+
+    if (currentTab === "rebalance") {
+      if (searchSectionEl) searchSectionEl.classList.add("hidden");
+      if (panelRebalance) panelRebalance.classList.remove("hidden");
+      if (state.rebalance.data) {
+        renderRebalanceDonuts(state.rebalance.data);
+      }
+    } else if (currentTab === "fundamental") {
+      if (searchSectionEl) searchSectionEl.classList.remove("hidden");
       if (state.fundamental.data) {
         panelFundamental.classList.remove("hidden");
         drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
       }
     } else {
-      panelFundamental.classList.add("hidden");
+      if (searchSectionEl) searchSectionEl.classList.remove("hidden");
       if (state.technical.data) {
         panelTechnical.classList.remove("hidden");
         drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
@@ -702,6 +740,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const endpoint = mode === "fundamental" ? "/fetch" : "/technical";
     const aiAnswerEl = mode === "fundamental" ? fundAiAnswerEl : techAiAnswerEl;
     const chatFormEl = mode === "fundamental" ? fundChatForm : techChatForm;
+    const quickQEl = mode === "fundamental" ? fundQuickQuestionsEl : techQuickQuestionsEl;
     const panelEl = mode === "fundamental" ? panelFundamental : panelTechnical;
 
     console.log(`[SEARCH]    데이터 수집 요청 시작 (${trimmed}, mode=${mode})`);
@@ -709,6 +748,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showStatus(`[${trimmed}] 데이터를 수집하고 있습니다...`);
     analyzeBtn.disabled = true;
     chatFormEl.classList.add("hidden");
+    if (quickQEl) quickQEl.classList.add("hidden");
 
     try {
       // 1단계: 원천 데이터 수집
@@ -777,6 +817,7 @@ document.addEventListener("DOMContentLoaded", () => {
         initialBubble.innerHTML = renderMarkdownSafe(analyzeData.answer);
         state[mode].conversationId = analyzeData.conversation_id || "";
         chatFormEl.classList.remove("hidden");
+        if (quickQEl) quickQEl.classList.remove("hidden");
       } else {
         initialBubble.innerHTML = renderMarkdownSafe("⚠️ AI 분석 답변을 생성하지 못했습니다. 위 오류 메시지를 확인해 주세요.");
       }
@@ -867,6 +908,395 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     sendFollowup("technical", techFollowupInput, techAiAnswerEl, techChatForm);
   });
+
+  if (rebalChatForm) {
+    rebalChatForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      sendFollowup("rebalance", rebalFollowupInput, rebalAiAnswerEl, rebalChatForm);
+    });
+  }
+
+  // 모든 탭의 추천 질문 칩 클릭 시 즉시 질문 전송
+  document.querySelectorAll(".quick-q-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const mode = btn.dataset.mode;
+      const q = btn.dataset.q || "";
+      if (!q) return;
+      if (mode === "fundamental") {
+        fundFollowupInput.value = q;
+        sendFollowup("fundamental", fundFollowupInput, fundAiAnswerEl, fundChatForm);
+      } else if (mode === "technical") {
+        techFollowupInput.value = q;
+        sendFollowup("technical", techFollowupInput, techAiAnswerEl, techChatForm);
+      } else if (mode === "rebalance") {
+        rebalFollowupInput.value = q;
+        sendFollowup("rebalance", rebalFollowupInput, rebalAiAnswerEl, rebalChatForm);
+      }
+    });
+  });
+
+  // ================= [탭 3] 리밸런싱 도우미 로직 =================
+  const STORAGE_KEY = "investment_assistant_portfolio_v1";
+  const DONUT_COLORS = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#64748b"];
+  const SAMPLE_PORTFOLIO = {
+    cash: 2000000,
+    cash_target_pct: 20,
+    items: [
+      { code: "000660", qty: 3, target_pct: 30 },
+      { code: "005930", qty: 20, target_pct: 30 },
+      { code: "035420", qty: 10, target_pct: 20 },
+    ],
+  };
+
+  function updateTargetSumHint() {
+    if (!rebalRowsEl || !rebalTargetSumHintEl) return;
+    let sum = Number(rebalCashTargetInput ? rebalCashTargetInput.value : 0) || 0;
+    rebalRowsEl.querySelectorAll(".rebal-target-input").forEach((inp) => {
+      sum += Number(inp.value) || 0;
+    });
+    const rounded = Math.round(sum * 100) / 100;
+    rebalTargetSumHintEl.textContent = `목표 비중 합계: ${rounded}%` + (Math.abs(rounded - 100) > 0.1 ? " (100%로 맞추는 것을 권장)" : " (완벽!)");
+  }
+
+  function savePortfolioToStorage() {
+    if (!rebalRowsEl) return;
+    const items = [];
+    rebalRowsEl.querySelectorAll(".rebal-row").forEach((row) => {
+      items.push({
+        code: row.querySelector(".rebal-code-input").value.trim(),
+        qty: Number(row.querySelector(".rebal-qty-input").value) || 0,
+        target_pct: Number(row.querySelector(".rebal-target-input").value) || 0,
+      });
+    });
+    const payload = {
+      cash: Number(rebalCashInput ? rebalCashInput.value : 0) || 0,
+      cash_target_pct: Number(rebalCashTargetInput ? rebalCashTargetInput.value : 0) || 0,
+      items,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (_) {}
+    updateTargetSumHint();
+  }
+
+  function createRebalRow(item = { code: "", qty: 0, target_pct: 0 }) {
+    if (!rebalRowsEl) return;
+    const div = document.createElement("div");
+    div.className = "rebal-row";
+    div.innerHTML = `
+      <div class="rebal-field">
+        <label>종목코드 (6자리)</label>
+        <input type="text" class="rebal-code-input" maxlength="6" placeholder="예: 000660" value="${escapeHtml(item.code || "")}" />
+      </div>
+      <div class="rebal-field">
+        <label>보유 수량 (주)</label>
+        <input type="number" class="rebal-qty-input" min="0" step="1" value="${escapeHtml(item.qty ?? 0)}" />
+      </div>
+      <div class="rebal-field">
+        <label>목표 비중 (%)</label>
+        <input type="number" class="rebal-target-input" min="0" max="100" step="1" value="${escapeHtml(item.target_pct ?? 0)}" />
+      </div>
+      <button type="button" class="rebal-del-btn">삭제</button>
+    `;
+
+    div.querySelectorAll("input").forEach((inp) => {
+      inp.addEventListener("input", savePortfolioToStorage);
+    });
+    div.querySelector(".rebal-del-btn").addEventListener("click", () => {
+      div.remove();
+      savePortfolioToStorage();
+    });
+    rebalRowsEl.appendChild(div);
+  }
+
+  function loadPortfolio(portfolioData) {
+    if (!rebalRowsEl) return;
+    rebalRowsEl.innerHTML = "";
+    const items = portfolioData.items && portfolioData.items.length > 0 ? portfolioData.items : SAMPLE_PORTFOLIO.items;
+    items.forEach((it) => createRebalRow(it));
+    if (rebalCashInput) rebalCashInput.value = portfolioData.cash ?? 0;
+    if (rebalCashTargetInput) rebalCashTargetInput.value = portfolioData.cash_target_pct ?? 0;
+    updateTargetSumHint();
+  }
+
+  function initPortfolio() {
+    if (!rebalRowsEl) return;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        loadPortfolio(JSON.parse(saved));
+        return;
+      }
+    } catch (_) {}
+    loadPortfolio(SAMPLE_PORTFOLIO);
+  }
+
+  function drawMultiDonut(canvasEl, slices, centerTop, centerBottom) {
+    if (!canvasEl) return;
+    const size = 170;
+    const dpr = window.devicePixelRatio || 1;
+    canvasEl.width = size * dpr;
+    canvasEl.height = size * dpr;
+
+    const ctx = canvasEl.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = 64;
+    const lineWidth = 24;
+    const total = slices.reduce((acc, s) => acc + Math.max(0, s.value), 0);
+
+    if (total <= 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    } else {
+      let startAngle = -Math.PI / 2;
+      slices.forEach((s) => {
+        if (s.value <= 0) return;
+        const sliceAngle = (s.value / total) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, startAngle, startAngle + sliceAngle);
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+        startAngle += sliceAngle;
+      });
+    }
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText(centerTop, cx, cy - 7);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "11px sans-serif";
+    ctx.fillText(centerBottom, cx, cy + 12);
+  }
+
+  function renderRebalanceDonuts(data) {
+    const items = data.items || [];
+    const cash = data.cash || { current_pct: 0, target_pct: 0 };
+
+    const currentSlices = items.map((it, idx) => ({
+      label: it.name,
+      value: it.current_pct,
+      color: DONUT_COLORS[idx % (DONUT_COLORS.length - 1)],
+    }));
+    currentSlices.push({ label: "현금", value: cash.current_pct, color: "#94a3b8" });
+
+    const targetSlices = items.map((it, idx) => ({
+      label: it.name,
+      value: it.target_pct,
+      color: DONUT_COLORS[idx % (DONUT_COLORS.length - 1)],
+    }));
+    targetSlices.push({ label: "현금", value: cash.target_pct, color: "#94a3b8" });
+
+    drawMultiDonut(rebalCurrentDonutEl, currentSlices, formatKoreanWon(data.total_value), "현재 총자산");
+    drawMultiDonut(rebalTargetDonutEl, targetSlices, `${data.target_sum_pct}%`, "목표 합계");
+
+    if (rebalLegendEl) {
+      rebalLegendEl.innerHTML = currentSlices
+        .map(
+          (s, idx) =>
+            `<span class="legend-item"><i class="dot" style="background-color:${s.color}"></i>${escapeHtml(s.label)} (${s.value}% → ${targetSlices[idx].value}%)</span>`
+        )
+        .join("");
+    }
+  }
+
+  function renderRebalanceResult(data) {
+    if (rebalTotalBadgeEl) {
+      rebalTotalBadgeEl.textContent = `총 자산: ${formatNumber(data.total_value)}원`;
+    }
+
+    if (rebalWarningsEl) {
+      const warns = data.warnings || [];
+      if (warns.length > 0) {
+        rebalWarningsEl.innerHTML = warns.map((w) => `<p>⚠️ ${escapeHtml(w)}</p>`).join("");
+        rebalWarningsEl.classList.remove("hidden");
+      } else {
+        rebalWarningsEl.classList.add("hidden");
+      }
+    }
+
+    if (rebalTableBodyEl) {
+      const rowsHtml = (data.items || [])
+        .map((it) => {
+          let actionHtml = `<span class="action-badge hold">유지</span>`;
+          if (it.action === "BUY") {
+            actionHtml = `<span class="action-badge buy">+${formatNumber(it.suggested_shares)}주 매수</span>`;
+          } else if (it.action === "SELL") {
+            actionHtml = `<span class="action-badge sell">${formatNumber(it.suggested_shares)}주 매도</span>`;
+          }
+          return `
+            <tr>
+              <td><strong>${escapeHtml(it.name)}</strong> (${escapeHtml(it.code)})</td>
+              <td>${escapeHtml(formatNumber(it.current_price))}원</td>
+              <td>${escapeHtml(formatNumber(it.qty))}주</td>
+              <td>${escapeHtml(formatNumber(it.eval_amount))}원</td>
+              <td>${it.current_pct}%</td>
+              <td>${it.target_pct}%</td>
+              <td>${actionHtml}</td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      const cash = data.cash || {};
+      const cashDiffText =
+        cash.diff_amount > 0
+          ? `<span class="action-badge buy">+${formatNumber(cash.diff_amount)}원 확보</span>`
+          : cash.diff_amount < 0
+            ? `<span class="action-badge sell">${formatNumber(cash.diff_amount)}원 투입</span>`
+            : `<span class="action-badge hold">유지</span>`;
+
+      rebalTableBodyEl.innerHTML =
+        rowsHtml +
+        `
+          <tr>
+            <td><strong>현금 (예수금)</strong></td>
+            <td>-</td>
+            <td>-</td>
+            <td>${escapeHtml(formatNumber(cash.amount))}원</td>
+            <td>${cash.current_pct}%</td>
+            <td>${cash.target_pct}%</td>
+            <td>${cashDiffText}</td>
+          </tr>
+        `;
+    }
+
+    rebalanceResultEl.classList.remove("hidden");
+    renderRebalanceDonuts(data);
+  }
+
+  async function runRebalanceCalc() {
+    savePortfolioToStorage();
+    const items = [];
+    rebalRowsEl.querySelectorAll(".rebal-row").forEach((row) => {
+      const code = row.querySelector(".rebal-code-input").value.trim();
+      if (code) {
+        items.push({
+          code,
+          qty: Number(row.querySelector(".rebal-qty-input").value) || 0,
+          target_pct: Number(row.querySelector(".rebal-target-input").value) || 0,
+        });
+      }
+    });
+
+    if (items.length === 0) {
+      showErrors(["최소 1개 이상의 종목코드를 입력해 주세요."]);
+      return;
+    }
+
+    showErrors([]);
+    showStatus("보유 종목의 실시간 시세를 조회하고 리밸런싱을 계산하고 있습니다...");
+    rebalCalcBtn.disabled = true;
+
+    try {
+      const res = await fetch("/rebalance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items,
+          cash: Number(rebalCashInput.value) || 0,
+          cash_target_pct: Number(rebalCashTargetInput.value) || 0,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.errors && data.errors.length > 0) {
+        showErrors(data.errors);
+      }
+      if (!res.ok) return;
+
+      state.rebalance = { code: "PORTFOLIO", data, conversationId: "" };
+      renderRebalanceResult(data);
+      rebalAiAnswerEl.innerHTML = "위 'AI 포트폴리오 진단 받기' 버튼을 누르면 현재 포트폴리오 비중과 리스크를 분석해 드립니다.";
+      rebalChatForm.classList.add("hidden");
+      if (rebalQuickQuestionsEl) rebalQuickQuestionsEl.classList.add("hidden");
+      console.log("[RENDER]    리밸런싱 계산 및 도넛 차트 렌더링 완료");
+    } catch (err) {
+      console.error(`[ERROR]     오류 발생 (${err.message})`);
+      showErrors(["리밸런싱 계산 중 서버 오류가 발생했습니다."]);
+    } finally {
+      hideStatus();
+      rebalCalcBtn.disabled = false;
+    }
+  }
+
+  async function runRebalanceAi() {
+    if (!state.rebalance.data) {
+      showErrors(["먼저 리밸런싱 계산을 실행해 주세요."]);
+      return;
+    }
+
+    showErrors([]);
+    showStatus("Dify AI가 내 포트폴리오를 진단하고 있습니다...");
+    rebalAiBtn.disabled = true;
+    rebalAiAnswerEl.innerHTML = "";
+    const initialBubble = appendChatBubble(
+      rebalAiAnswerEl,
+      "ai",
+      "🤖 Dify AI가 포트폴리오 비중과 리스크를 진단하고 있습니다... (잠시만 기다려 주세요)"
+    );
+
+    try {
+      const res = await fetch("/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: "PORTFOLIO",
+          mode: "rebalance",
+          cached_data: state.rebalance.data,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.errors && data.errors.length > 0) {
+        showErrors(data.errors);
+      }
+
+      if (data.answer) {
+        console.log("[DIFY]      Dify 챗봇 분석 요청 및 응답 완료 (rebalance)");
+        initialBubble.innerHTML = renderMarkdownSafe(data.answer);
+        state.rebalance.conversationId = data.conversation_id || "";
+        rebalChatForm.classList.remove("hidden");
+        if (rebalQuickQuestionsEl) rebalQuickQuestionsEl.classList.remove("hidden");
+      } else {
+        initialBubble.innerHTML = renderMarkdownSafe("⚠️ 포트폴리오 AI 진단을 생성하지 못했습니다. 위 오류 메시지를 확인해 주세요.");
+      }
+    } catch (err) {
+      console.error(`[ERROR]     오류 발생 (${err.message})`);
+      showErrors(["AI 포트폴리오 진단 중 오류가 발생했습니다."]);
+    } finally {
+      hideStatus();
+      rebalAiBtn.disabled = false;
+    }
+  }
+
+  if (rebalAddRowBtn) {
+    rebalAddRowBtn.addEventListener("click", () => {
+      createRebalRow({ code: "", qty: 0, target_pct: 0 });
+      savePortfolioToStorage();
+    });
+  }
+  if (rebalSampleBtn) {
+    rebalSampleBtn.addEventListener("click", () => {
+      loadPortfolio(SAMPLE_PORTFOLIO);
+      savePortfolioToStorage();
+    });
+  }
+  if (rebalCashInput) rebalCashInput.addEventListener("input", savePortfolioToStorage);
+  if (rebalCashTargetInput) rebalCashTargetInput.addEventListener("input", savePortfolioToStorage);
+  if (rebalCalcBtn) rebalCalcBtn.addEventListener("click", runRebalanceCalc);
+  if (rebalAiBtn) rebalAiBtn.addEventListener("click", runRebalanceAi);
+
+  initPortfolio();
 
   if (techChartEl) {
     techChartEl.addEventListener("mousemove", (e) => {
