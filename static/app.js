@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const rsiStatusBadgeEl = document.getElementById("rsi-status-badge");
   const rsiDescEl = document.getElementById("rsi-desc");
   let activeChartSeries = [];
+  let activeChartCurrency = "KRW";
 
   function showStatus(msg) {
     statusMessage.textContent = msg;
@@ -231,6 +232,16 @@ document.addEventListener("DOMContentLoaded", () => {
       return "-";
     }
     return Number(num).toLocaleString("ko-KR");
+  }
+
+  function formatPrice(num, currency = "KRW") {
+    if (num === null || num === undefined || Number.isNaN(Number(num))) {
+      return "-";
+    }
+    if (currency === "USD") {
+      return `$${Number(num).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `${Number(num).toLocaleString("ko-KR")}원`;
   }
 
   function formatKoreanWon(amount) {
@@ -443,10 +454,16 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderFundamental(data) {
     const snap = data.snapshot || {};
     const isEtf = data.asset_type === "etf";
+    const isUs = data.market === "US";
+    const currency = data.currency || (isUs ? "USD" : "KRW");
+
     stockNameEl.textContent = data.name || "알 수 없음";
-    stockCodeBadgeEl.textContent = isEtf ? `${data.code || "-"} · ETF` : (data.code || "-");
-    currentPriceEl.textContent =
-      snap.current_price != null ? `${formatNumber(snap.current_price)}원` : "-";
+    if (isUs) {
+      stockCodeBadgeEl.textContent = `${data.code || "-"} · ${data.exchange || "US"}`;
+    } else {
+      stockCodeBadgeEl.textContent = isEtf ? `${data.code || "-"} · ETF` : (data.code || "-");
+    }
+    currentPriceEl.textContent = formatPrice(snap.current_price, currency);
 
     changeRateEl.className = "change-rate";
     if (snap.change_rate == null) {
@@ -466,12 +483,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const stockMetricsGridEl = document.getElementById("stock-metrics-grid");
     const etfInfoGridEl = document.getElementById("etf-info-grid");
     const foreignDonutSecEl = document.getElementById("foreign-donut-section");
+    const supplyCardEl = document.getElementById("supply-demand-card");
     const financialsCardEl = document.getElementById("financials-card");
     const dartCardEl = document.getElementById("dart-card");
 
-    if (isEtf) {
+    if (isUs) {
+      if (stockMetricsGridEl) stockMetricsGridEl.classList.remove("hidden");
+      if (etfInfoGridEl) etfInfoGridEl.classList.add("hidden");
+      if (foreignDonutSecEl) foreignDonutSecEl.classList.add("hidden");
+      if (supplyCardEl) supplyCardEl.classList.add("hidden");
+      if (financialsCardEl) financialsCardEl.classList.add("hidden");
+      if (dartCardEl) dartCardEl.classList.add("hidden");
+
+      marketCapEl.textContent = snap.market_cap_text || "-";
+      perValueEl.textContent = snap.per != null ? `${snap.per}배` : "-";
+      pbrValueEl.textContent = snap.pbr != null ? `${snap.pbr}배` : "-";
+    } else if (isEtf) {
       if (stockMetricsGridEl) stockMetricsGridEl.classList.add("hidden");
       if (foreignDonutSecEl) foreignDonutSecEl.classList.add("hidden");
+      if (supplyCardEl) supplyCardEl.classList.remove("hidden");
       if (financialsCardEl) financialsCardEl.classList.add("hidden");
       if (dartCardEl) dartCardEl.classList.add("hidden");
       if (etfInfoGridEl) etfInfoGridEl.classList.remove("hidden");
@@ -490,6 +520,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
       if (stockMetricsGridEl) stockMetricsGridEl.classList.remove("hidden");
       if (foreignDonutSecEl) foreignDonutSecEl.classList.remove("hidden");
+      if (supplyCardEl) supplyCardEl.classList.remove("hidden");
       if (financialsCardEl) financialsCardEl.classList.remove("hidden");
       if (dartCardEl) dartCardEl.classList.remove("hidden");
       if (etfInfoGridEl) etfInfoGridEl.classList.add("hidden");
@@ -702,14 +733,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
-    techCloseEl.textContent = summary.latest_close != null ? `${formatNumber(summary.latest_close)}원` : "-";
+    const cur = data.currency || (data.market === "US" ? "USD" : "KRW");
+    activeChartCurrency = cur;
+
+    techCloseEl.textContent = formatPrice(summary.latest_close, cur);
     techVolumeEl.textContent = summary.volume != null ? `${formatNumber(summary.volume)}주` : "-";
     techRsiEl.textContent = summary.rsi_14 != null ? `${summary.rsi_14}` : "-";
-    techMa5El.textContent = summary.ma5 != null ? `${formatNumber(summary.ma5)}원` : "-";
-    techMa20El.textContent = summary.ma20 != null ? `${formatNumber(summary.ma20)}원` : "-";
-    techMa60El.textContent = summary.ma60 != null ? `${formatNumber(summary.ma60)}원` : "-";
-    techHigh20El.textContent = summary.high_20d != null ? `${formatNumber(summary.high_20d)}원` : "-";
-    techLow20El.textContent = summary.low_20d != null ? `${formatNumber(summary.low_20d)}원` : "-";
+    techMa5El.textContent = formatPrice(summary.ma5, cur);
+    techMa20El.textContent = formatPrice(summary.ma20, cur);
+    techMa60El.textContent = formatPrice(summary.ma60, cur);
+    techHigh20El.textContent = formatPrice(summary.high_20d, cur);
+    techLow20El.textContent = formatPrice(summary.low_20d, cur);
 
     candlesBodyEl.innerHTML = "";
     const candles = [...(data.recent_candles || [])].reverse();
@@ -720,10 +754,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${escapeHtml(c.date)}</td>
-          <td>${escapeHtml(formatNumber(c.open))}</td>
-          <td>${escapeHtml(formatNumber(c.high))}</td>
-          <td>${escapeHtml(formatNumber(c.low))}</td>
-          <td><strong>${escapeHtml(formatNumber(c.close))}</strong></td>
+          <td>${escapeHtml(formatPrice(c.open, cur))}</td>
+          <td>${escapeHtml(formatPrice(c.high, cur))}</td>
+          <td>${escapeHtml(formatPrice(c.low, cur))}</td>
+          <td><strong>${escapeHtml(formatPrice(c.close, cur))}</strong></td>
           <td>${escapeHtml(formatNumber(c.volume))}</td>
         `;
         candlesBodyEl.appendChild(tr);
@@ -853,12 +887,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function runAnalyze(code) {
     const trimmed = code.trim();
-    if (!/^\d{6}$/.test(trimmed)) {
-      const msg = "종목코드는 6자리 숫자여야 합니다. (예: 000660)";
+    const isValidKr = /^\d{6}$/.test(trimmed);
+    const isValidUs = /^[A-Za-z]{1,5}(\.[A-Za-z]{1,2})?$/.test(trimmed);
+    if (!isValidKr && !isValidUs) {
+      const msg = "국내 6자리 숫자 코드(예: 000660) 또는 미국 영문 티커(예: NVDA, AAPL)를 입력해 주세요.";
       console.error(`[ERROR]     오류 발생 (${msg})`);
       showErrors([msg]);
       return;
     }
+    const normalized = isValidUs ? trimmed.toUpperCase() : trimmed;
 
     const mode = currentTab;
     const endpoint = mode === "fundamental" ? "/fetch" : "/technical";
@@ -1463,10 +1500,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       chartTooltipEl.innerHTML = `
         <strong>${escapeHtml(item.date)}</strong><br/>
-        종가: ${escapeHtml(formatNumber(item.close))}원<br/>
-        MA5: ${item.ma5 != null ? escapeHtml(formatNumber(item.ma5)) + "원" : "-"}<br/>
-        MA20: ${item.ma20 != null ? escapeHtml(formatNumber(item.ma20)) + "원" : "-"}<br/>
-        MA60: ${item.ma60 != null ? escapeHtml(formatNumber(item.ma60)) + "원" : "-"}
+        종가: ${escapeHtml(formatPrice(item.close, activeChartCurrency))}<br/>
+        MA5: ${escapeHtml(formatPrice(item.ma5, activeChartCurrency))}<br/>
+        MA20: ${escapeHtml(formatPrice(item.ma20, activeChartCurrency))}<br/>
+        MA60: ${escapeHtml(formatPrice(item.ma60, activeChartCurrency))}
       `;
       chartTooltipEl.classList.remove("hidden");
 

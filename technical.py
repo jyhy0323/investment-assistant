@@ -2,7 +2,7 @@ import logging
 import math
 from datetime import datetime, timedelta
 import FinanceDataReader as fdr
-from collector import validate_code
+from collector import is_us_ticker, validate_code
 
 logger = logging.getLogger("StockApp")
 
@@ -47,21 +47,22 @@ def fetch_ohlcv_dataframe(code: str, days: int = 180):
     return df
 
 
-def extract_recent_candles(df, count: int = 10) -> list[dict]:
+def extract_recent_candles(df, count: int = 10, as_float: bool = False) -> list[dict]:
     """DataFrame의 최근 N거래일 일봉을 순수 Python 타입 딕셔너리 리스트로 정제한다."""
     if df is None or df.empty:
         return []
 
+    conv = (lambda v: _to_float(v, 2)) if as_float else _to_int
     candles = []
     tail_df = df.tail(count)
     for idx, row in tail_df.iterrows():
         date_str = idx.strftime("%Y-%m-%d") if hasattr(idx, "strftime") else str(idx)[:10]
         candles.append({
             "date": date_str,
-            "open": _to_int(row.get("Open")),
-            "high": _to_int(row.get("High")),
-            "low": _to_int(row.get("Low")),
-            "close": _to_int(row.get("Close")),
+            "open": conv(row.get("Open")),
+            "high": conv(row.get("High")),
+            "low": conv(row.get("Low")),
+            "close": conv(row.get("Close")),
             "volume": _to_int(row.get("Volume")),
         })
     return candles
@@ -124,36 +125,38 @@ def calculate_rsi(close_series, period: int = 14) -> float | None:
     return _to_float(rsi, digits=2)
 
 
-def calculate_price_summary(df) -> dict:
+def calculate_price_summary(df, as_float: bool = False) -> dict:
     """DataFrame으로부터 이동평균선(MA5/20/60), 20일 고/저가, RSI(14)를 계산한다."""
     if df is None or df.empty:
         return {}
 
+    conv = (lambda v: _to_float(v, 2)) if as_float else _to_int
     close = df["Close"]
     latest_row = df.iloc[-1]
     recent_20 = df.tail(20)
 
-    ma5 = _to_int(close.tail(5).mean()) if len(df) >= 5 else None
-    ma20 = _to_int(close.tail(20).mean()) if len(df) >= 20 else None
-    ma60 = _to_int(close.tail(60).mean()) if len(df) >= 60 else None
+    ma5 = conv(close.tail(5).mean()) if len(df) >= 5 else None
+    ma20 = conv(close.tail(20).mean()) if len(df) >= 20 else None
+    ma60 = conv(close.tail(60).mean()) if len(df) >= 60 else None
 
     return {
-        "latest_close": _to_int(latest_row.get("Close")),
+        "latest_close": conv(latest_row.get("Close")),
         "volume": _to_int(latest_row.get("Volume")),
         "ma5": ma5,
         "ma20": ma20,
         "ma60": ma60,
         "rsi_14": calculate_rsi(close, period=14),
-        "high_20d": _to_int(recent_20["High"].max()),
-        "low_20d": _to_int(recent_20["Low"].min()),
+        "high_20d": conv(recent_20["High"].max()),
+        "low_20d": conv(recent_20["Low"].min()),
     }
 
 
-def extract_chart_series(df, count: int = 60) -> list[dict]:
+def extract_chart_series(df, count: int = 60, as_float: bool = False) -> list[dict]:
     """최근 N거래일 종가와 MA5/MA20/MA60 이동평균선 시계열을 차트용으로 정제한다."""
     if df is None or df.empty:
         return []
 
+    conv = (lambda v: _to_float(v, 2)) if as_float else _to_int
     work = df.copy()
     work["MA5"] = work["Close"].rolling(5).mean()
     work["MA20"] = work["Close"].rolling(20).mean()
@@ -164,10 +167,10 @@ def extract_chart_series(df, count: int = 60) -> list[dict]:
         date_str = idx.strftime("%Y-%m-%d") if hasattr(idx, "strftime") else str(idx)[:10]
         series.append({
             "date": date_str,
-            "close": _to_int(row.get("Close")),
-            "ma5": _to_int(row.get("MA5")),
-            "ma20": _to_int(row.get("MA20")),
-            "ma60": _to_int(row.get("MA60")),
+            "close": conv(row.get("Close")),
+            "ma5": conv(row.get("MA5")),
+            "ma20": conv(row.get("MA20")),
+            "ma60": conv(row.get("MA60")),
         })
     return series
 
@@ -199,10 +202,14 @@ def calculate_period_returns(df) -> dict:
 
 
 def collect_technical(code: str) -> dict:
-    """Step 7 (2차): 일봉 조회(1회), 기술적 지표 계산, 기간별 수익률, 최근 10거래일 및 60일 차트 시계열을 통합 반환한다."""
-    cleaned_code = str(code).strip() if code else ""
+    """국내 6자리 종목코드 또는 미국 영문 티커의 일봉 조회, 기술적 지표, 기간별 수익률, 60일 차트 시계열을 반환한다."""
+    raw = str(code).strip() if code else ""
+    is_us = is_us_ticker(raw)
+    cleaned_code = raw.upper() if is_us else raw
     result = {
         "code": cleaned_code,
+        "market": "US" if is_us else "KR",
+        "currency": "USD" if is_us else "KRW",
         "as_of": None,
         "price_summary": {},
         "period_returns": {},
@@ -224,12 +231,12 @@ def collect_technical(code: str) -> dict:
             result["errors"].append(msg)
             return result
 
-        candles = extract_recent_candles(df, count=10)
+        candles = extract_recent_candles(df, count=10, as_float=is_us)
         result["recent_candles"] = candles
         result["as_of"] = candles[-1]["date"] if candles else None
-        result["price_summary"] = calculate_price_summary(df)
+        result["price_summary"] = calculate_price_summary(df, as_float=is_us)
         result["period_returns"] = calculate_period_returns(df)
-        result["chart_series"] = extract_chart_series(df, count=60)
+        result["chart_series"] = extract_chart_series(df, count=60, as_float=is_us)
         logger.info(
             f"[FDR]       기술적 지표 계산 완료 "
             f"(close={result['price_summary'].get('latest_close')}, "

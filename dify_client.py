@@ -24,6 +24,15 @@ def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") 
         return f"{user_question.strip()}\n\n[참고 데이터]\n{data_json}"
 
     if mode == "fundamental":
+        if stock_data.get("market") == "US":
+            return (
+                "아래는 미국 주식/ETF(USD 달러 기준)의 실시간 시세·시가총액·PER/PBR 및 최신 뉴스 데이터입니다. "
+                "한국 초보자(주린이)도 이해하기 쉽게 다음을 정리해 주세요:\n"
+                "1) 핵심 시세(달러 기준) 및 밸류에이션(PER/PBR) 특징\n"
+                "2) 최신 뉴스 핵심 이슈 요약\n"
+                "3) 미국 주식 투자 관점에서 주린이가 볼 [긍정적인 점]과 [주의할 점 (환율 변동성 포함)]\n\n"
+                f"{data_json}"
+            )
         if stock_data.get("asset_type") == "etf":
             return (
                 "아래는 네이버 금융(ETF 시세·기초지수·운용사·총보수·NAV·분배율·20일 외인/기관/개인 수급 동향)과 Serper 뉴스에서 수집한 ETF 데이터입니다. "

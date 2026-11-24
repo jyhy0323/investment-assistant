@@ -48,14 +48,21 @@ def _request_naver_json(url: str, label: str) -> tuple[dict | None, str | None]:
     return None, f"네이버 금융 {label} 접근에 실패했습니다."
 
 
+def is_us_ticker(code: str) -> bool:
+    """미국 주식/ETF 영문 티커 형식(예: NVDA, AAPL, BRK.B)인지 판별한다."""
+    if not code:
+        return False
+    return bool(re.fullmatch(r"[A-Za-z]{1,5}(?:\.[A-Za-z]{1,2})?", str(code).strip()))
+
+
 def validate_code(code: str) -> str | None:
-    """종목코드가 6자리 숫자인지 검증하고, 오류 시 사용자 친화적 메시지를 반환한다."""
+    """국내 6자리 종목코드 또는 미국 영문 티커인지 검증한다."""
     if not code or not str(code).strip():
-        return "종목코드가 입력되지 않았습니다."
+        return "종목코드 또는 티커가 입력되지 않았습니다."
     cleaned = str(code).strip()
-    if not re.fullmatch(r"\d{6}", cleaned):
-        return "종목코드는 6자리 숫자여야 합니다. (예: 000660)"
-    return None
+    if re.fullmatch(r"\d{6}", cleaned) or is_us_ticker(cleaned):
+        return None
+    return "국내 6자리 숫자 코드(예: 000660) 또는 미국 영문 티커(예: NVDA, AAPL)를 입력해 주세요."
 
 
 def clean_number(value: str | int | float | None, as_float: bool = False) -> int | float | None:
@@ -101,6 +108,8 @@ def fetch_basic_info(code: str) -> dict:
     result = {
         "code": str(code).strip() if code else "",
         "name": None,
+        "market": "KR",
+        "currency": "KRW",
         "asset_type": "stock",
         "snapshot": {
             "current_price": None,
@@ -496,8 +505,79 @@ def fetch_supply_demand(code: str, result: dict) -> dict:
     return result
 
 
+def fetch_us_stock(ticker: str) -> dict:
+    """네이버 해외주식 API로 미국 주식/ETF의 실시간 시세, 시총, PER/PBR 및 뉴스를 수집한다."""
+    clean_ticker = str(ticker).strip().upper()
+    result = {
+        "code": clean_ticker,
+        "name": None,
+        "market": "US",
+        "currency": "USD",
+        "exchange": None,
+        "asset_type": "stock",
+        "snapshot": {
+            "current_price": None,
+            "change_rate": None,
+            "market_cap": None,
+            "market_cap_text": None,
+            "per": None,
+            "pbr": None,
+            "foreign_rate": None,
+        },
+        "etf_info": None,
+        "financials": [],
+        "disclosures": [],
+        "supply_demand": {},
+        "news": [],
+        "errors": [],
+    }
+
+    # NASDAQ(.O) -> NYSE/AMEX(bare) -> AMEX(.A) 순서로 조회
+    candidates = [f"{clean_ticker}.O", clean_ticker, f"{clean_ticker}.A"]
+    data = None
+    for sym in candidates:
+        url = f"https://api.stock.naver.com/stock/{sym}/basic"
+        logger.info(f"[NAVER]    미국 주식 접근 시도 url={url}")
+        resp_data, err = _request_naver_json(url, f"미국주식({sym})")
+        if not err and isinstance(resp_data, dict) and resp_data.get("stockName"):
+            data = resp_data
+            break
+
+    if not data:
+        msg = f"네이버 해외주식에서 미국 티커({clean_ticker})를 찾지 못했습니다."
+        logger.error(f"[ERROR]    {msg}")
+        result["errors"].append(msg)
+        return result
+
+    stock_name = data.get("stockName")
+    end_type = str(data.get("stockEndType", "")).lower()
+    result["name"] = stock_name
+    result["exchange"] = data.get("stockExchangeName") or "US"
+    result["asset_type"] = "etf" if end_type == "etf" else "stock"
+    result["snapshot"]["current_price"] = clean_number(data.get("closePrice"), as_float=True)
+    result["snapshot"]["change_rate"] = clean_number(data.get("fluctuationsRatio"), as_float=True)
+
+    total_infos = data.get("stockItemTotalInfos") or []
+    info_map = {item.get("code"): item.get("value") for item in total_infos if isinstance(item, dict)}
+
+    result["snapshot"]["market_cap_text"] = info_map.get("marketValue") or "-"
+    result["snapshot"]["per"] = clean_number(info_map.get("per"), as_float=True)
+    result["snapshot"]["pbr"] = clean_number(info_map.get("pbr"), as_float=True)
+
+    logger.info(
+        f"[PARSE]    미국 주식 파싱 완료 (ticker={clean_ticker}, name={stock_name}, "
+        f"price=${result['snapshot']['current_price']}, exchange={result['exchange']})"
+    )
+
+    result = fetch_serper_news(stock_name, result)
+    return result
+
+
 def collect_all(code: str) -> dict:
-    """종목코드를 받아 시세, 투자정보(또는 ETF 정보), 기업실적, 수급 동향, DART 공시, Serper 뉴스를 순차 수집한다."""
+    """국내 6자리 종목코드 또는 미국 영문 티커를 자동 판별해 통합 데이터를 수집한다."""
+    if is_us_ticker(code):
+        return fetch_us_stock(code)
+
     result = fetch_basic_info(code)
     if not result.get("name"):
         return result
