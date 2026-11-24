@@ -201,8 +201,64 @@ def calculate_period_returns(df) -> dict:
     }
 
 
+def calculate_support_resistance(df, as_float: bool = False) -> dict:
+    """최근 20일·60일 고가/저가를 기반으로 핵심 지지선·저항선과 돌파/이탈 시나리오를 계산한다."""
+    if df is None or len(df) < 5:
+        return {}
+
+    conv = (lambda v: _to_float(v, 2)) if as_float else _to_int
+    latest = float(df["Close"].iloc[-1])
+    recent_20 = df.tail(20)
+    recent_60 = df.tail(60)
+
+    r1_raw = float(recent_20["High"].max())
+    r2_raw = float(recent_60["High"].max())
+    s1_raw = float(recent_20["Low"].min())
+    s2_raw = float(recent_60["Low"].min())
+
+    # 현재가가 이미 20일 고가와 같다면 60일 고가를 1차 저항선으로 사용
+    primary_r = r2_raw if (latest >= r1_raw * 0.995 and r2_raw > r1_raw) else r1_raw
+    primary_s = s2_raw if (latest <= s1_raw * 1.005 and s2_raw < s1_raw) else s1_raw
+
+    to_r_pct = _to_float(((primary_r - latest) / latest) * 100.0, 2) if latest > 0 else None
+    to_s_pct = _to_float(((latest - primary_s) / latest) * 100.0, 2) if latest > 0 else None
+
+    def _fmt(val: float) -> str:
+        return f"${val:,.2f}" if as_float else f"{int(round(val)):,}원"
+
+    span = primary_r - primary_s
+    pos_ratio = (latest - primary_s) / span if span > 0 else 0.5
+    if pos_ratio >= 0.8:
+        position_label = "저항선 돌파 임박 (상단 강세 구간)"
+    elif pos_ratio <= 0.25:
+        position_label = "지지선 테스트 중 (하단 방어 구간)"
+    else:
+        position_label = "지지선·저항선 사이 박스권 중립 구간"
+
+    bullish_msg = (
+        f"저항선({_fmt(primary_r)})을 거래량과 함께 돌파하면 매물대를 뚫고 "
+        f"상승 추세 전환 및 추가 상승 모멘텀이 강화될 수 있습니다."
+    )
+    bearish_msg = (
+        f"지지선({_fmt(primary_s)})이 종가 기준으로 무너지면 하방 압력이 커지며 "
+        f"추가 하락(손절·리스크 관리 점검 구간)에 유의해야 합니다."
+    )
+
+    return {
+        "resistance_1": conv(primary_r),
+        "resistance_2": conv(r2_raw),
+        "support_1": conv(primary_s),
+        "support_2": conv(s2_raw),
+        "to_resistance_pct": to_r_pct,
+        "to_support_pct": to_s_pct,
+        "position_label": position_label,
+        "bullish_trigger": bullish_msg,
+        "bearish_trigger": bearish_msg,
+    }
+
+
 def collect_technical(code: str) -> dict:
-    """국내 6자리 종목코드 또는 미국 영문 티커의 일봉 조회, 기술적 지표, 기간별 수익률, 60일 차트 시계열을 반환한다."""
+    """국내 6자리 종목코드 또는 미국 영문 티커의 일봉 조회, 기술적 지표, 기간별 수익률, 지지/저항선, 60일 차트 시계열을 반환한다."""
     raw = str(code).strip() if code else ""
     is_us = is_us_ticker(raw)
     cleaned_code = raw.upper() if is_us else raw
@@ -213,6 +269,7 @@ def collect_technical(code: str) -> dict:
         "as_of": None,
         "price_summary": {},
         "period_returns": {},
+        "support_resistance": {},
         "recent_candles": [],
         "chart_series": [],
         "errors": [],
@@ -236,6 +293,7 @@ def collect_technical(code: str) -> dict:
         result["as_of"] = candles[-1]["date"] if candles else None
         result["price_summary"] = calculate_price_summary(df, as_float=is_us)
         result["period_returns"] = calculate_period_returns(df)
+        result["support_resistance"] = calculate_support_resistance(df, as_float=is_us)
         result["chart_series"] = extract_chart_series(df, count=60, as_float=is_us)
         logger.info(
             f"[FDR]       기술적 지표 계산 완료 "

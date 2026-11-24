@@ -127,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const rsiDescEl = document.getElementById("rsi-desc");
   let activeChartSeries = [];
   let activeChartCurrency = "KRW";
+  let activeSupportResistance = null;
 
   function showStatus(msg) {
     statusMessage.textContent = msg;
@@ -765,6 +766,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     activeChartSeries = data.chart_series || [];
+    activeSupportResistance = data.support_resistance || null;
+
+    // 지지선·저항선 돌파/이탈 시나리오 렌더링
+    const srSectionEl = document.getElementById("sr-section");
+    if (srSectionEl && activeSupportResistance && activeSupportResistance.resistance_1 != null) {
+      srSectionEl.classList.remove("hidden");
+      const posEl = document.getElementById("sr-position-label");
+      const resValEl = document.getElementById("sr-resistance-val");
+      const supValEl = document.getElementById("sr-support-val");
+      const bullMsgEl = document.getElementById("sr-bullish-msg");
+      const bearMsgEl = document.getElementById("sr-bearish-msg");
+
+      const toR = activeSupportResistance.to_resistance_pct;
+      const toS = activeSupportResistance.to_support_pct;
+      if (posEl) posEl.textContent = activeSupportResistance.position_label || "-";
+      if (resValEl) {
+        resValEl.textContent = `${formatPrice(activeSupportResistance.resistance_1, cur)}` +
+          (toR != null ? ` (${toR >= 0 ? "+" : ""}${toR}%)` : "");
+      }
+      if (supValEl) {
+        supValEl.textContent = `${formatPrice(activeSupportResistance.support_1, cur)}` +
+          (toS != null ? ` (-${toS}%)` : "");
+      }
+      if (bullMsgEl) bullMsgEl.textContent = activeSupportResistance.bullish_trigger || "-";
+      if (bearMsgEl) bearMsgEl.textContent = activeSupportResistance.bearish_trigger || "-";
+    } else if (srSectionEl) {
+      srSectionEl.classList.add("hidden");
+    }
   }
 
   function drawTechChart(series, hoverIdx = -1) {
@@ -782,46 +811,91 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
-    const pad = { top: 18, right: 16, bottom: 28, left: 74 };
+    const pad = { top: 22, right: 18, bottom: 28, left: 74 };
     const plotW = width - pad.left - pad.right;
     const plotH = height - pad.top - pad.bottom;
 
-    // 최소/최대 가격 범위 계산
+    // 최소/최대 가격 범위 계산 (지지선·저항선 포함)
     const values = [];
     series.forEach((item) => {
       ["close", "ma5", "ma20", "ma60"].forEach((k) => {
         if (item[k] != null) values.push(item[k]);
       });
     });
+    if (activeSupportResistance) {
+      if (activeSupportResistance.resistance_1 != null) values.push(activeSupportResistance.resistance_1);
+      if (activeSupportResistance.support_1 != null) values.push(activeSupportResistance.support_1);
+    }
     if (values.length === 0) return;
 
     let minVal = Math.min(...values);
     let maxVal = Math.max(...values);
     const span = maxVal - minVal || 1;
-    minVal = minVal - span * 0.06;
-    maxVal = maxVal + span * 0.06;
+    minVal = minVal - span * 0.08;
+    maxVal = maxVal + span * 0.08;
 
     const getX = (idx) => pad.left + (series.length === 1 ? plotW / 2 : (idx / (series.length - 1)) * plotW);
     const getY = (val) => pad.top + ((maxVal - val) / (maxVal - minVal)) * plotH;
 
     // 가로 눈금선 및 Y축 가격 레이블 (5줄)
+    const isDarkTheme = document.documentElement.getAttribute("data-theme") === "dark";
     ctx.font = "11px sans-serif";
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
     for (let i = 0; i <= 4; i++) {
       const ratio = i / 4;
       const y = pad.top + ratio * plotH;
-      const priceVal = Math.round(maxVal - ratio * (maxVal - minVal));
+      const priceVal = maxVal - ratio * (maxVal - minVal);
 
-      ctx.strokeStyle = "#e2e8f0";
+      ctx.strokeStyle = isDarkTheme ? "#2c2e38" : "#e5e8eb";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(pad.left, y);
       ctx.lineTo(width - pad.right, y);
       ctx.stroke();
 
-      ctx.fillStyle = "#64748b";
-      ctx.fillText(formatNumber(priceVal), pad.left - 8, y);
+      ctx.fillStyle = "#8b95a1";
+      const yLabel = activeChartCurrency === "USD" ? `$${priceVal.toFixed(1)}` : formatNumber(Math.round(priceVal));
+      ctx.fillText(yLabel, pad.left - 8, y);
+    }
+
+    // 저항선 / 지지선 수평 점선 + 우측 라벨 배지 그리기
+    const drawHorizontalLevel = (val, label, lineColor, bgColor) => {
+      if (val == null) return;
+      const y = getY(val);
+      ctx.save();
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(width - pad.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const text = `${label} ${formatPrice(val, activeChartCurrency)}`;
+      ctx.font = "bold 10.5px sans-serif";
+      const textW = ctx.measureText(text).width;
+      const boxW = textW + 12;
+      const boxH = 18;
+      const boxX = width - pad.right - boxW;
+      const boxY = Math.max(4, Math.min(y - boxH / 2, height - pad.bottom - boxH));
+
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(boxX, boxY, boxW, boxH, 5);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, boxX + boxW / 2, boxY + boxH / 2 + 0.5);
+      ctx.restore();
+    };
+
+    if (activeSupportResistance) {
+      drawHorizontalLevel(activeSupportResistance.resistance_1, "저항선", "#f04452", "rgba(240, 68, 82, 0.9)");
+      drawHorizontalLevel(activeSupportResistance.support_1, "지지선", "#3182f6", "rgba(49, 130, 246, 0.9)");
     }
 
     // X축 날짜 레이블 (시작, 중간, 끝)

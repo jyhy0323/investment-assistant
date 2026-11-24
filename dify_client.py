@@ -66,8 +66,8 @@ def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") 
         )
 
     return (
-        "아래는 FinanceDataReader로 수집한 최근 일봉 및 기술적 지표(이동평균선, RSI, 20일 고저가) 데이터입니다. "
-        "초보자도 이해하기 쉽게 현재 주가 위치, 이동평균선 배열, RSI 과매수/과매도 여부를 객관적으로 해석해 주세요.\n\n"
+        "아래는 FinanceDataReader로 수집한 최근 일봉, 기술적 지표(이동평균선, RSI, 기간별 수익률), 그리고 핵심 지지선·저항선 데이터입니다. "
+        "초보자도 이해하기 쉽게 현재 주가 위치, 이동평균선 배열, RSI 과매수/과매도 여부, 그리고 저항선 돌파(상승 추세 전환) 및 지지선 이탈(하방 주의) 시나리오를 객관적으로 해석해 주세요.\n\n"
         f"{data_json}"
     )
 
