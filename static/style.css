@@ -1638,3 +1638,54 @@ body {
   color: var(--toss-text-sub);
   line-height: 1.55;
 }
+
+
+/* ================= 주린이 공매도 읽는 법 아코디언 ================= */
+.short-guide {
+  margin-top: 14px;
+  background-color: var(--toss-surface-sub);
+  border-radius: var(--toss-radius-md);
+  padding: 12px 16px;
+}
+
+.short-guide summary {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--toss-blue);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.short-guide summary::after {
+  content: "펼치기 ▾";
+  font-size: 0.78rem;
+  color: var(--toss-text-muted);
+}
+
+.short-guide[open] summary::after {
+  content: "접기 ▴";
+}
+
+.short-guide-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--toss-divider);
+  font-size: 0.85rem;
+  color: var(--toss-text-sub);
+  line-height: 1.65;
+}
+
+.short-guide-intro {
+  margin-bottom: 8px;
+}
+
+.short-guide-list {
+  margin-left: 16px;
+}
+
+.short-guide-list li {
+  margin-bottom: 5px;
+}
