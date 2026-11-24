@@ -322,14 +322,158 @@ def fetch_serper_news(stock_name: str | None, result: dict) -> dict:
     return result
 
 
+def _calc_streak(values: list[int | None]) -> int:
+    """최신일부터 연속 순매수(+N) 또는 연속 순매도(-N) 거래일 수를 계산한다."""
+    if not values or values[0] is None or values[0] == 0:
+        return 0
+    direction = 1 if values[0] > 0 else -1
+    count = 0
+    for v in values:
+        if v is None or v == 0:
+            break
+        if (v > 0 and direction > 0) or (v < 0 and direction < 0):
+            count += 1
+        else:
+            break
+    return count * direction
+
+
+def fetch_supply_demand(code: str, result: dict) -> dict:
+    """
+    네이버 금융 trend API(최근 20거래일)에서 개인·외국인·기관 일별 순매수 및
+    외국인 지분율 추이를 수집하고 단기(5일)/중기(20일) 요약과 긍정·부정 신호를 생성한다.
+    """
+    url = f"https://m.stock.naver.com/api/stock/{code}/trend?pageSize=20"
+    logger.info(f"[NAVER]    수급 동향(20일) 접근 시작 url={url}")
+
+    data, err = _request_naver_json(url, "수급 동향")
+    if err:
+        logger.error(f"[ERROR]    {err}")
+        result["errors"].append(err)
+        result["supply_demand"] = {}
+        return result
+
+    if not isinstance(data, list) or len(data) == 0:
+        msg = "수급 동향 데이터가 비어 있거나 구조가 예상과 다릅니다."
+        logger.warning(f"[ERROR]    {msg}")
+        result["errors"].append(msg)
+        result["supply_demand"] = {}
+        return result
+
+    daily_all = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        raw_date = str(item.get("bizdate", ""))
+        date_fmt = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:8]}" if len(raw_date) == 8 else raw_date
+        daily_all.append({
+            "date": date_fmt,
+            "foreigner_net": clean_number(item.get("foreignerPureBuyQuant"), as_float=False),
+            "organ_net": clean_number(item.get("organPureBuyQuant"), as_float=False),
+            "individual_net": clean_number(item.get("individualPureBuyQuant"), as_float=False),
+            "foreign_ratio": clean_number(item.get("foreignerHoldRatio"), as_float=True),
+            "close": clean_number(item.get("closePrice"), as_float=False),
+        })
+
+    def sum_net(rows: list[dict], key: str) -> int:
+        return sum(r[key] for r in rows if r.get(key) is not None)
+
+    rows_5 = daily_all[:5]
+    rows_20 = daily_all[:20]
+
+    days_5 = {
+        "foreigner": sum_net(rows_5, "foreigner_net"),
+        "organ": sum_net(rows_5, "organ_net"),
+        "individual": sum_net(rows_5, "individual_net"),
+    }
+    days_20 = {
+        "foreigner": sum_net(rows_20, "foreigner_net"),
+        "organ": sum_net(rows_20, "organ_net"),
+        "individual": sum_net(rows_20, "individual_net"),
+    }
+
+    streaks = {
+        "foreigner": _calc_streak([r["foreigner_net"] for r in daily_all]),
+        "organ": _calc_streak([r["organ_net"] for r in daily_all]),
+        "individual": _calc_streak([r["individual_net"] for r in daily_all]),
+    }
+
+    latest_fr = daily_all[0]["foreign_ratio"] if daily_all else None
+    oldest_fr = daily_all[-1]["foreign_ratio"] if daily_all else None
+    fr_change_20d = (
+        round(latest_fr - oldest_fr, 2)
+        if (latest_fr is not None and oldest_fr is not None)
+        else None
+    )
+
+    positive = []
+    negative = []
+
+    # 단기(5일) 수급 패턴
+    if days_5["foreigner"] > 0 and days_5["organ"] > 0:
+        positive.append("단기(5일) 외국인과 기관이 동시에 순매수(쌍끌이) 유입 중입니다.")
+    elif days_5["foreigner"] < 0 and days_5["organ"] < 0 and days_5["individual"] > 0:
+        negative.append("단기(5일) 외국인·기관이 동시 매도하고 개인이 물량을 받아내는 구간입니다.")
+
+    # 중기(20일) 수급 패턴
+    if days_20["foreigner"] > 0 and days_20["organ"] > 0:
+        positive.append("중기(20일) 외국인과 기관의 동반 매수세가 누적되고 있습니다.")
+    elif days_20["foreigner"] < 0 and days_20["organ"] < 0 and days_20["individual"] > 0:
+        negative.append("중기(20일) 외국인·기관 이탈이 이어지며 개인 순매수가 누적된 상태입니다.")
+
+    # 연속 매매 추세
+    if streaks["foreigner"] >= 3:
+        positive.append(f"외국인이 최근 {streaks['foreigner']}거래일 연속 순매수를 이어가고 있습니다.")
+    elif streaks["foreigner"] <= -3:
+        negative.append(f"외국인이 최근 {abs(streaks['foreigner'])}거래일 연속 순매도 중입니다.")
+
+    if streaks["organ"] >= 3:
+        positive.append(f"기관이 최근 {streaks['organ']}거래일 연속 순매수를 이어가고 있습니다.")
+    elif streaks["organ"] <= -3:
+        negative.append(f"기관이 최근 {abs(streaks['organ'])}거래일 연속 순매도 중입니다.")
+
+    # 외국인 지분율 변화 (20일)
+    if fr_change_20d is not None:
+        if fr_change_20d >= 0.2:
+            positive.append(f"최근 20거래일간 외국인 지분율이 +{fr_change_20d:.2f}%p 상승했습니다.")
+        elif fr_change_20d <= -0.2:
+            negative.append(f"최근 20거래일간 외국인 지분율이 {fr_change_20d:.2f}%p 하락했습니다.")
+
+    if not positive:
+        positive.append("뚜렷한 단기/중기 메이저(외인·기관) 매수 집중 신호는 아직 약한 편입니다.")
+    if not negative:
+        negative.append("현재 수급상 두드러진 메이저 이탈이나 개인 쏠림 경고 신호는 보이지 않습니다.")
+
+    result["supply_demand"] = {
+        "days_5": days_5,
+        "days_20": days_20,
+        "streaks": streaks,
+        "foreign_ratio_latest": latest_fr,
+        "foreign_ratio_20d_ago": oldest_fr,
+        "foreign_ratio_change_20d": fr_change_20d,
+        "signals": {
+            "positive": positive,
+            "negative": negative,
+        },
+        "daily": daily_all[:5],
+    }
+
+    logger.info(
+        f"[PARSE]    수급 동향 파싱 완료 (5일 외인={days_5['foreigner']}, 기관={days_5['organ']}, "
+        f"개인={days_5['individual']}, 외인지분변화={fr_change_20d})"
+    )
+    return result
+
+
 def collect_all(code: str) -> dict:
-    """종목코드를 받아 시세, 투자정보, 기업실적, Serper 뉴스를 순차 수집한다."""
+    """종목코드를 받아 시세, 투자정보, 기업실적, 수급 동향, Serper 뉴스를 순차 수집한다."""
     result = fetch_basic_info(code)
     if not result.get("name"):
         return result
 
     result = fetch_integration_info(result["code"], result)
     result = fetch_financials(result["code"], result)
+    result = fetch_supply_demand(result["code"], result)
     result = fetch_serper_news(result["name"], result)
     return result
 

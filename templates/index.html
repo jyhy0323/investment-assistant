@@ -106,6 +106,54 @@
         </div>
       </section>
 
+      <!-- 수급 분석 & 주린이 신호등 카드 -->
+      <section class="card" id="supply-demand-card">
+        <div class="section-title-row">
+          <h2>수급 분석 &amp; 주린이 신호등 (외인·기관·개인)</h2>
+          <span id="fr-change-badge" class="badge">20일 외인지분 변화: -</span>
+        </div>
+
+        <!-- 긍정 / 부정 신호등 2열 박스 -->
+        <div class="signal-grid">
+          <div class="signal-box positive">
+            <h3>🟢 긍정적 수급 신호</h3>
+            <ul id="signal-positive-list"></ul>
+          </div>
+          <div class="signal-box negative">
+            <h3>🔴 부정적 / 주의 신호</h3>
+            <ul id="signal-negative-list"></ul>
+          </div>
+        </div>
+
+        <!-- 단기(5일) vs 중기(20일) 누적 순매수 비교 -->
+        <div class="supply-summary-grid">
+          <div class="supply-period-box">
+            <h4>단기 수급 (최근 5거래일 누적)</h4>
+            <div class="supply-bars" id="supply-bars-5d"></div>
+          </div>
+          <div class="supply-period-box">
+            <h4>중기 수급 (최근 20거래일 누적)</h4>
+            <div class="supply-bars" id="supply-bars-20d"></div>
+          </div>
+        </div>
+
+        <!-- 최근 5거래일 일별 수급 표 -->
+        <div class="table-wrapper" style="margin-top: 14px;">
+          <table class="financials-table">
+            <thead>
+              <tr>
+                <th>날짜</th>
+                <th>외국인 (주)</th>
+                <th>기관 (주)</th>
+                <th>개인 (주)</th>
+                <th>외인 지분율</th>
+              </tr>
+            </thead>
+            <tbody id="supply-daily-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- 기업실적분석 표 -->
       <section class="card">
         <div class="section-title-row">

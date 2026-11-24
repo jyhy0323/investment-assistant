@@ -36,6 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const foreignDonutEl = document.getElementById("foreign-donut-chart");
   const foreignPctTextEl = document.getElementById("foreign-pct-text");
   const domesticPctTextEl = document.getElementById("domestic-pct-text");
+  const frChangeBadgeEl = document.getElementById("fr-change-badge");
+  const signalPositiveListEl = document.getElementById("signal-positive-list");
+  const signalNegativeListEl = document.getElementById("signal-negative-list");
+  const supplyBars5dEl = document.getElementById("supply-bars-5d");
+  const supplyBars20dEl = document.getElementById("supply-bars-20d");
+  const supplyDailyBodyEl = document.getElementById("supply-daily-body");
 
   // [탭 2] 지표해석기 요소
   const techAiAnswerEl = document.getElementById("tech-ai-answer");
@@ -426,6 +432,108 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
         newsListEl.appendChild(li);
       });
+    }
+
+    renderSupplyDemand(data.supply_demand);
+  }
+
+  function formatSignedQty(num) {
+    if (num === null || num === undefined || Number.isNaN(Number(num))) return "-";
+    const n = Number(num);
+    if (n > 0) return `+${n.toLocaleString("ko-KR")}`;
+    return n.toLocaleString("ko-KR");
+  }
+
+  function qtyClass(num) {
+    if (num > 0) return "net-buy";
+    if (num < 0) return "net-sell";
+    return "net-flat";
+  }
+
+  function renderSupplyBars(containerEl, periodData) {
+    if (!containerEl) return;
+    const rows = [
+      { label: "외국인", val: periodData ? periodData.foreigner : 0 },
+      { label: "기관", val: periodData ? periodData.organ : 0 },
+      { label: "개인", val: periodData ? periodData.individual : 0 },
+    ];
+    const maxAbs = Math.max(...rows.map((r) => Math.abs(r.val || 0)), 1);
+
+    containerEl.innerHTML = rows
+      .map((r) => {
+        const pct = Math.min(100, Math.round((Math.abs(r.val || 0) / maxAbs) * 100));
+        const fillClass = r.val >= 0 ? "buy" : "sell";
+        const textClass = qtyClass(r.val);
+        return `
+          <div class="supply-bar-row">
+            <div class="supply-bar-header">
+              <span>${r.label}</span>
+              <span class="${textClass}">${escapeHtml(formatSignedQty(r.val))}주</span>
+            </div>
+            <div class="supply-bar-track">
+              <div class="supply-bar-fill ${fillClass}" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  function renderSupplyDemand(sd) {
+    if (!sd || !sd.days_5) {
+      if (frChangeBadgeEl) frChangeBadgeEl.textContent = "20일 외인지분 변화: -";
+      if (signalPositiveListEl) signalPositiveListEl.innerHTML = "<li>수급 데이터가 없습니다.</li>";
+      if (signalNegativeListEl) signalNegativeListEl.innerHTML = "<li>수급 데이터가 없습니다.</li>";
+      if (supplyBars5dEl) supplyBars5dEl.innerHTML = "";
+      if (supplyBars20dEl) supplyBars20dEl.innerHTML = "";
+      if (supplyDailyBodyEl) {
+        supplyDailyBodyEl.innerHTML = `<tr><td colspan="5" style="text-align:center;">수급 데이터가 없습니다.</td></tr>`;
+      }
+      return;
+    }
+
+    if (frChangeBadgeEl) {
+      const diff = sd.foreign_ratio_change_20d;
+      if (diff == null) {
+        frChangeBadgeEl.textContent = "20일 외인지분 변화: -";
+      } else {
+        const sign = diff > 0 ? "+" : "";
+        frChangeBadgeEl.textContent = `20일 외인지분 변화: ${sign}${diff.toFixed(2)}%p`;
+      }
+    }
+
+    const posList = (sd.signals && sd.signals.positive) || [];
+    const negList = (sd.signals && sd.signals.negative) || [];
+    if (signalPositiveListEl) {
+      signalPositiveListEl.innerHTML = posList.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+    }
+    if (signalNegativeListEl) {
+      signalNegativeListEl.innerHTML = negList.map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+    }
+
+    renderSupplyBars(supplyBars5dEl, sd.days_5);
+    renderSupplyBars(supplyBars20dEl, sd.days_20);
+
+    if (supplyDailyBodyEl) {
+      const daily = sd.daily || [];
+      if (daily.length === 0) {
+        supplyDailyBodyEl.innerHTML = `<tr><td colspan="5" style="text-align:center;">일별 수급 데이터가 없습니다.</td></tr>`;
+      } else {
+        supplyDailyBodyEl.innerHTML = daily
+          .map((row) => {
+            const frText = row.foreign_ratio != null ? `${row.foreign_ratio.toFixed(2)}%` : "-";
+            return `
+              <tr>
+                <td>${escapeHtml(row.date)}</td>
+                <td class="${qtyClass(row.foreigner_net)}">${escapeHtml(formatSignedQty(row.foreigner_net))}</td>
+                <td class="${qtyClass(row.organ_net)}">${escapeHtml(formatSignedQty(row.organ_net))}</td>
+                <td class="${qtyClass(row.individual_net)}">${escapeHtml(formatSignedQty(row.individual_net))}</td>
+                <td>${escapeHtml(frText)}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
     }
   }
 
