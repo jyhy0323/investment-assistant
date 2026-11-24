@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI 주식 종합 분석 앱 (Dify + FinanceDataReader)</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='toss6') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='toss8') }}" />
 </head>
 <body>
   <!-- 토스증권 스타일 상단 고정 네비게이션 바 -->
@@ -356,6 +356,7 @@
             <span class="legend-item"><i class="dot dot-ma5"></i>MA5</span>
             <span class="legend-item"><i class="dot dot-ma20"></i>MA20</span>
             <span class="legend-item"><i class="dot dot-ma60"></i>MA60</span>
+            <span class="legend-item"><i class="dot dot-bb"></i>볼린저밴드</span>
             <span class="legend-item"><i class="dot dot-resistance"></i>저항선</span>
             <span class="legend-item"><i class="dot dot-support"></i>지지선</span>
           </div>
@@ -388,6 +389,21 @@
               <p id="sr-support-reason" class="sr-reason">-</p>
               <p id="sr-bearish-msg">-</p>
             </div>
+          </div>
+
+          <!-- 볼린저밴드 설명 카드 -->
+          <div id="bb-box" class="bb-box hidden">
+            <div class="bb-header">
+              <span>📊 볼린저밴드 (20일 ± 2σ) <span class="help-tip" data-tip="주가의 95%가 움직이는 통계적 도로입니다. 상단선에 닿으면 단기 과열, 하단선에 닿으면 단기 과매도로 해석합니다.">?</span></span>
+              <span id="bb-status-badge" class="badge">-</span>
+            </div>
+            <div class="bb-metrics">
+              <span>상단선 <strong id="bb-upper">-</strong></span>
+              <span>중심선(20일) <strong id="bb-middle">-</strong></span>
+              <span>하단선 <strong id="bb-lower">-</strong></span>
+              <span>밴드 위치(%B) <strong id="bb-percent-b">-</strong></span>
+            </div>
+            <p id="bb-explanation" class="bb-explain">-</p>
           </div>
         </div>
       </section>
@@ -522,6 +538,6 @@
     </footer>
   </div>
 
-  <script src="{{ url_for('static', filename='app.js', v='toss7') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v='toss8') }}"></script>
 </body>
 </html>

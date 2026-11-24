@@ -798,6 +798,25 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (srSectionEl) {
       srSectionEl.classList.add("hidden");
     }
+
+    // 볼린저밴드 요약 및 설명 렌더링
+    const bbBoxEl = document.getElementById("bb-box");
+    const bb = data.bollinger;
+    if (bbBoxEl && bb && bb.upper != null) {
+      bbBoxEl.classList.remove("hidden");
+      const setBb = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+      };
+      setBb("bb-status-badge", bb.status || "-");
+      setBb("bb-upper", formatPrice(bb.upper, cur));
+      setBb("bb-middle", formatPrice(bb.middle, cur));
+      setBb("bb-lower", formatPrice(bb.lower, cur));
+      setBb("bb-percent-b", bb.percent_b != null ? `${bb.percent_b}%` : "-");
+      setBb("bb-explanation", bb.explanation || "-");
+    } else if (bbBoxEl) {
+      bbBoxEl.classList.add("hidden");
+    }
   }
 
   function drawTechChart(series, hoverIdx = -1) {
@@ -819,10 +838,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const plotW = width - pad.left - pad.right;
     const plotH = height - pad.top - pad.bottom;
 
-    // 최소/최대 가격 범위 계산 (지지선·저항선 포함)
+    // 최소/최대 가격 범위 계산 (볼린저밴드·지지선·저항선 포함)
     const values = [];
     series.forEach((item) => {
-      ["close", "ma5", "ma20", "ma60"].forEach((k) => {
+      ["close", "ma5", "ma20", "ma60", "bb_upper", "bb_lower"].forEach((k) => {
         if (item[k] != null) values.push(item[k]);
       });
     });
@@ -861,6 +880,45 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.fillStyle = "#8b95a1";
       const yLabel = activeChartCurrency === "USD" ? `$${priceVal.toFixed(1)}` : formatNumber(Math.round(priceVal));
       ctx.fillText(yLabel, pad.left - 8, y);
+    }
+
+    // 볼린저밴드 반투명 음영 영역 + 상/하단 경계선 그리기
+    const bbPoints = series
+      .map((item, idx) => ({ idx, up: item.bb_upper, lo: item.bb_lower }))
+      .filter((p) => p.up != null && p.lo != null);
+    if (bbPoints.length >= 2) {
+      ctx.save();
+      ctx.beginPath();
+      bbPoints.forEach((p, i) => {
+        const x = getX(p.idx);
+        const y = getY(p.up);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      for (let i = bbPoints.length - 1; i >= 0; i--) {
+        const p = bbPoints[i];
+        ctx.lineTo(getX(p.idx), getY(p.lo));
+      }
+      ctx.closePath();
+      ctx.fillStyle = isDarkTheme ? "rgba(139, 92, 246, 0.16)" : "rgba(139, 92, 246, 0.11)";
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(139, 92, 246, 0.45)";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      bbPoints.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(getX(p.idx), getY(p.up));
+        else ctx.lineTo(getX(p.idx), getY(p.up));
+      });
+      ctx.stroke();
+
+      ctx.beginPath();
+      bbPoints.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(getX(p.idx), getY(p.lo));
+        else ctx.lineTo(getX(p.idx), getY(p.lo));
+      });
+      ctx.stroke();
+      ctx.restore();
     }
 
     // 저항선 / 지지선 수평 점선 + 우측 라벨 배지 그리기
@@ -1579,9 +1637,10 @@ document.addEventListener("DOMContentLoaded", () => {
       chartTooltipEl.innerHTML = `
         <strong>${escapeHtml(item.date)}</strong><br/>
         종가: ${escapeHtml(formatPrice(item.close, activeChartCurrency))}<br/>
-        MA5: ${escapeHtml(formatPrice(item.ma5, activeChartCurrency))}<br/>
-        MA20: ${escapeHtml(formatPrice(item.ma20, activeChartCurrency))}<br/>
-        MA60: ${escapeHtml(formatPrice(item.ma60, activeChartCurrency))}
+        MA5: ${escapeHtml(formatPrice(item.ma5, activeChartCurrency))} · MA20: ${escapeHtml(formatPrice(item.ma20, activeChartCurrency))}<br/>
+        MA60: ${escapeHtml(formatPrice(item.ma60, activeChartCurrency))}<br/>
+        BB 상단: ${escapeHtml(formatPrice(item.bb_upper, activeChartCurrency))}<br/>
+        BB 하단: ${escapeHtml(formatPrice(item.bb_lower, activeChartCurrency))}
       `;
       chartTooltipEl.classList.remove("hidden");
 

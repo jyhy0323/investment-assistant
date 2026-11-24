@@ -161,6 +161,9 @@ def extract_chart_series(df, count: int = 60, as_float: bool = False) -> list[di
     work["MA5"] = work["Close"].rolling(5).mean()
     work["MA20"] = work["Close"].rolling(20).mean()
     work["MA60"] = work["Close"].rolling(60).mean()
+    std20 = work["Close"].rolling(20).std()
+    work["BB_UPPER"] = work["MA20"] + 2 * std20
+    work["BB_LOWER"] = work["MA20"] - 2 * std20
 
     series = []
     for idx, row in work.tail(count).iterrows():
@@ -171,6 +174,8 @@ def extract_chart_series(df, count: int = 60, as_float: bool = False) -> list[di
             "ma5": conv(row.get("MA5")),
             "ma20": conv(row.get("MA20")),
             "ma60": conv(row.get("MA60")),
+            "bb_upper": conv(row.get("BB_UPPER")),
+            "bb_lower": conv(row.get("BB_LOWER")),
         })
     return series
 
@@ -281,8 +286,52 @@ def calculate_support_resistance(df, as_float: bool = False) -> dict:
     }
 
 
+def calculate_bollinger_summary(df, as_float: bool = False) -> dict:
+    """20일 이동평균선 ± 2표준편차 볼린저밴드 요약과 초보자용 상태 해석을 계산한다."""
+    if df is None or len(df) < 20:
+        return {}
+
+    conv = (lambda v: _to_float(v, 2)) if as_float else _to_int
+    close = df["Close"]
+    latest = float(close.iloc[-1])
+    mid = float(close.tail(20).mean())
+    std = float(close.tail(20).std())
+    upper = mid + 2 * std
+    lower = mid - 2 * std
+
+    band_span = upper - lower
+    percent_b = _to_float(((latest - lower) / band_span) * 100.0, 1) if band_span > 0 else 50.0
+    bandwidth_pct = _to_float((band_span / mid) * 100.0, 1) if mid > 0 else None
+
+    if percent_b is not None and percent_b >= 95:
+        status = "상단선 근접/돌파 (단기 과열 주의)"
+        explanation = "주가가 통계적 정상 범위(상단선) 끝까지 올라와 단기 차익실현 매물이 나올 수 있는 자리입니다."
+    elif percent_b is not None and percent_b <= 5:
+        status = "하단선 근접/이탈 (단기 과매도·반등 관찰)"
+        explanation = "주가가 통계적 하단선까지 크게 내려온 상태로, 단기 낙폭 과대에 따른 기술적 반등 여부를 관찰할 자리입니다."
+    elif bandwidth_pct is not None and bandwidth_pct <= 12:
+        status = "밴드 폭 수축 (변동성 응축·스퀴즈)"
+        explanation = "상·하단 폭이 좁아지며 에너지가 모이는 구간입니다. 조만간 위나 아래로 큰 방향성이 나올 가능성이 높습니다."
+    elif percent_b is not None and percent_b >= 50:
+        status = "중심선(20일선) 위 상단 영역"
+        explanation = "20일 평균선과 상단선 사이에서 움직이며 비교적 안정적인 매수 우위 흐름을 보이고 있습니다."
+    else:
+        status = "중심선(20일선) 아래 하단 영역"
+        explanation = "20일 평균선 아래에서 약세 흐름을 보이고 있으며, 중심선(20일선) 회복 여부가 단기 핵심입니다."
+
+    return {
+        "upper": conv(upper),
+        "middle": conv(mid),
+        "lower": conv(lower),
+        "percent_b": percent_b,
+        "bandwidth_pct": bandwidth_pct,
+        "status": status,
+        "explanation": explanation,
+    }
+
+
 def collect_technical(code: str) -> dict:
-    """국내 6자리 종목코드 또는 미국 영문 티커의 일봉 조회, 기술적 지표, 기간별 수익률, 지지/저항선, 60일 차트 시계열을 반환한다."""
+    """국내 6자리 종목코드 또는 미국 영문 티커의 일봉 조회, 기술적 지표, 기간별 수익률, 지지/저항선, 볼린저밴드, 60일 차트 시계열을 반환한다."""
     raw = str(code).strip() if code else ""
     is_us = is_us_ticker(raw)
     cleaned_code = raw.upper() if is_us else raw
@@ -294,6 +343,7 @@ def collect_technical(code: str) -> dict:
         "price_summary": {},
         "period_returns": {},
         "support_resistance": {},
+        "bollinger": {},
         "recent_candles": [],
         "chart_series": [],
         "errors": [],
@@ -318,6 +368,7 @@ def collect_technical(code: str) -> dict:
         result["price_summary"] = calculate_price_summary(df, as_float=is_us)
         result["period_returns"] = calculate_period_returns(df)
         result["support_resistance"] = calculate_support_resistance(df, as_float=is_us)
+        result["bollinger"] = calculate_bollinger_summary(df, as_float=is_us)
         result["chart_series"] = extract_chart_series(df, count=60, as_float=is_us)
         logger.info(
             f"[FDR]       기술적 지표 계산 완료 "

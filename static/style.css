@@ -1592,3 +1592,49 @@ body {
   padding-bottom: 6px;
   border-bottom: 1px dashed rgba(128, 128, 128, 0.28);
 }
+
+
+/* ================= 볼린저밴드 범례 & 설명 카드 ================= */
+.dot-bb {
+  background-color: rgba(139, 92, 246, 0.32);
+  border: 1.5px solid #8b5cf6;
+}
+
+.bb-box {
+  margin-top: 12px;
+  padding: 15px 18px;
+  background-color: rgba(139, 92, 246, 0.08);
+  border-radius: var(--toss-radius-md);
+}
+
+.bb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--toss-text);
+}
+
+.bb-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.84rem;
+  color: var(--toss-text-sub);
+  margin-bottom: 8px;
+}
+
+.bb-metrics strong {
+  color: var(--toss-text);
+  margin-left: 3px;
+}
+
+.bb-explain {
+  font-size: 0.85rem;
+  color: var(--toss-text-sub);
+  line-height: 1.55;
+}
