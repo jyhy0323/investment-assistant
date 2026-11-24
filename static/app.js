@@ -8,6 +8,40 @@ document.addEventListener("DOMContentLoaded", () => {
     rebalance: { code: "PORTFOLIO", data: null, conversationId: "" },
   };
 
+  // 테마(다크/라이트모드) 초기화 및 전환
+  const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  const THEME_STORAGE_KEY = "investment_assistant_theme";
+  const applyTheme = (theme) => {
+    document.documentElement.setAttribute("data-theme", theme);
+    if (themeToggleBtn) {
+      themeToggleBtn.textContent = theme === "dark" ? "☀️ 라이트모드" : "🌙 다크모드";
+    }
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch (_) {}
+  };
+  const savedTheme = (() => {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) || "light";
+    } catch (_) {
+      return "light";
+    }
+  })();
+  applyTheme(savedTheme);
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      applyTheme(next);
+      if (state.fundamental.data) drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
+      if (state.technical.data) {
+        drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
+        drawTechChart(activeChartSeries);
+      }
+      if (state.rebalance.data) renderRebalanceDonuts(state.rebalance.data);
+    });
+  }
+
   // 공통 요소
   const tabBtns = document.querySelectorAll(".tab-btn");
   const searchSectionEl = document.getElementById("search-section");
@@ -259,7 +293,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 중앙 텍스트
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28");
     ctx.font = "bold 18px sans-serif";
     ctx.fillText(hasVal ? `${clamped.toFixed(1)}%` : "-", cx, cy - 6);
     ctx.fillStyle = "#64748b";
@@ -355,7 +389,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 중앙 텍스트
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28");
     ctx.font = "bold 19px sans-serif";
     ctx.fillText(hasVal ? clamped.toFixed(1) : "-", cx, cy - 6);
     ctx.fillStyle = "#64748b";
@@ -758,7 +792,7 @@ document.addEventListener("DOMContentLoaded", () => {
     drawLine("ma60", "#10b981", 1.8);
     drawLine("ma20", "#f59e0b", 1.8);
     drawLine("ma5", "#ef4444", 1.8);
-    drawLine("close", "#0f172a", 2.2);
+    drawLine("close", (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28"), 2.2);
 
     // 마우스 호버 세로선 및 포인트 강조
     if (hoverIdx >= 0 && hoverIdx < series.length) {
@@ -773,7 +807,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.setLineDash([]);
 
       const item = series[hoverIdx];
-      [["close", "#0f172a"], ["ma5", "#ef4444"], ["ma20", "#f59e0b"], ["ma60", "#10b981"]].forEach(([k, c]) => {
+      [["close", (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28")], ["ma5", "#ef4444"], ["ma20", "#f59e0b"], ["ma60", "#10b981"]].forEach(([k, c]) => {
         if (item[k] != null) {
           ctx.fillStyle = c;
           ctx.beginPath();
@@ -1127,7 +1161,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28");
     ctx.font = "bold 14px sans-serif";
     ctx.fillText(centerTop, cx, cy - 7);
     ctx.fillStyle = "#64748b";

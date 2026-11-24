@@ -34,14 +34,16 @@ body {
   background-color: var(--toss-bg);
   color: var(--toss-text);
   line-height: 1.6;
-  padding: 36px 18px 64px;
+  padding: 0 0 72px;
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .container {
-  max-width: 900px;
+  max-width: 920px;
   margin: 0 auto;
+  padding: 28px 18px 0;
 }
 
 /* ================= 헤더 ================= */
@@ -1236,5 +1238,274 @@ body {
   .donut-title-row,
   .donut-legend {
     justify-content: center;
+  }
+}
+
+
+/* ================= 토스증권 WTS 상단 고정 바 & 히어로 검색 ================= */
+.toss-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--toss-border);
+}
+
+.topbar-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand-area {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3182f6 0%, #1b64da 100%);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(49, 130, 246, 0.3);
+}
+
+.brand-title {
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--toss-text);
+}
+
+.topbar-tabs {
+  background-color: transparent;
+  padding: 0;
+  margin-bottom: 0;
+  gap: 4px;
+  height: 62px;
+  align-items: stretch;
+}
+
+.topbar-tabs .tab-btn {
+  flex: none;
+  padding: 0 18px;
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--toss-text-muted);
+  position: relative;
+  font-size: 0.96rem;
+}
+
+.topbar-tabs .tab-btn:hover {
+  color: var(--toss-text);
+}
+
+.topbar-tabs .tab-btn.active {
+  background-color: transparent;
+  box-shadow: none;
+  color: var(--toss-text);
+  font-weight: 800;
+}
+
+.topbar-tabs .tab-btn.active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  background-color: var(--toss-blue);
+  border-radius: 3px 3px 0 0;
+}
+
+.theme-toggle-btn {
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--toss-text-sub);
+  background-color: var(--toss-bg);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--toss-border);
+  color: var(--toss-text);
+}
+
+/* 히어로 스포트라이트 검색 */
+.toss-hero-search {
+  padding: 30px 28px 26px;
+  margin-bottom: 22px;
+}
+
+.hero-copy {
+  margin-bottom: 18px;
+}
+
+.hero-copy h1 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--toss-text);
+  margin-bottom: 4px;
+}
+
+.toss-search-pill {
+  display: flex;
+  align-items: center;
+  background-color: var(--toss-bg);
+  border-radius: 16px;
+  padding: 6px 6px 6px 16px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.toss-search-pill:focus-within {
+  background-color: var(--toss-surface);
+  border-color: var(--toss-blue);
+  box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.14);
+}
+
+.search-icon {
+  font-size: 1.05rem;
+  opacity: 0.65;
+  margin-right: 4px;
+}
+
+.toss-search-pill input {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 10px 8px;
+}
+
+.toss-search-pill button {
+  padding: 12px 24px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.quick-label {
+  font-weight: 700;
+  color: var(--toss-text-muted);
+  margin-right: 2px;
+}
+
+.example-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+}
+
+.example-btn span {
+  font-size: 0.76rem;
+  color: var(--toss-text-muted);
+  font-weight: 500;
+}
+
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--toss-blue);
+}
+
+.current-price {
+  font-size: 2.15rem;
+  font-weight: 800;
+}
+
+/* ================= 토스증권 다크모드 (Toss Securities Dark) ================= */
+[data-theme="dark"] {
+  --toss-bg: #17171c;
+  --toss-surface: #202027;
+  --toss-surface-sub: #292932;
+  --toss-text: #f2f4f6;
+  --toss-text-sub: #b0b8c1;
+  --toss-text-muted: #8b95a1;
+  --toss-border: #333540;
+  --toss-divider: #2c2e38;
+  --toss-blue: #4593fc;
+  --toss-blue-hover: #3182f6;
+  --toss-blue-soft: rgba(49, 130, 246, 0.18);
+  --toss-red: #ff5c6a;
+  --toss-red-soft: rgba(240, 68, 82, 0.18);
+  --toss-green: #22d188;
+  --toss-green-soft: rgba(3, 178, 108, 0.18);
+  --toss-amber: #ffb830;
+  --toss-amber-soft: rgba(245, 159, 0, 0.18);
+  --toss-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .toss-topbar {
+  background-color: rgba(23, 23, 28, 0.88);
+}
+
+[data-theme="dark"] .ai-card {
+  border-color: rgba(69, 147, 252, 0.28);
+}
+
+[data-theme="dark"] .signal-box.positive {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .signal-box.negative {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .rebal-warnings {
+  color: #fde68a;
+}
+
+[data-theme="dark"] .news-item:hover {
+  background-color: #323440;
+}
+
+[data-theme="dark"] .followup-form button {
+  background-color: var(--toss-blue);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .followup-form input {
+  color: var(--toss-text);
+}
+
+@media (max-width: 720px) {
+  .topbar-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 12px 16px 0;
+  }
+  .topbar-tabs {
+    order: 3;
+    width: 100%;
+    height: 46px;
+    justify-content: space-around;
+    border-top: 1px solid var(--toss-divider);
+  }
+  .topbar-tabs .tab-btn {
+    padding: 0 10px;
+    font-size: 0.9rem;
   }
 }
