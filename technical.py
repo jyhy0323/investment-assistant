@@ -172,13 +172,40 @@ def extract_chart_series(df, count: int = 60) -> list[dict]:
     return series
 
 
+def calculate_period_returns(df) -> dict:
+    """최근 1주(5거래일), 1개월(21거래일), 3개월(63거래일), 6개월(전체 시작일) 수익률(%)을 계산한다."""
+    if df is None or len(df) < 2:
+        return {"1w": None, "1m": None, "3m": None, "6m": None}
+
+    close = df["Close"]
+    latest = float(close.iloc[-1])
+    n = len(close)
+
+    def _ret(offset: int) -> float | None:
+        if n <= offset:
+            base = float(close.iloc[0])
+        else:
+            base = float(close.iloc[-1 - offset])
+        if base == 0:
+            return None
+        return _to_float(((latest - base) / base) * 100.0, digits=2)
+
+    return {
+        "1w": _ret(5) if n >= 6 else None,
+        "1m": _ret(21) if n >= 22 else None,
+        "3m": _ret(63) if n >= 64 else None,
+        "6m": _ret(n - 1),
+    }
+
+
 def collect_technical(code: str) -> dict:
-    """Step 7 (2차): 일봉 조회(1회), 기술적 지표 계산, 최근 10거래일 및 60일 차트 시계열을 통합 반환한다."""
+    """Step 7 (2차): 일봉 조회(1회), 기술적 지표 계산, 기간별 수익률, 최근 10거래일 및 60일 차트 시계열을 통합 반환한다."""
     cleaned_code = str(code).strip() if code else ""
     result = {
         "code": cleaned_code,
         "as_of": None,
         "price_summary": {},
+        "period_returns": {},
         "recent_candles": [],
         "chart_series": [],
         "errors": [],
@@ -201,6 +228,7 @@ def collect_technical(code: str) -> dict:
         result["recent_candles"] = candles
         result["as_of"] = candles[-1]["date"] if candles else None
         result["price_summary"] = calculate_price_summary(df)
+        result["period_returns"] = calculate_period_returns(df)
         result["chart_series"] = extract_chart_series(df, count=60)
         logger.info(
             f"[FDR]       기술적 지표 계산 완료 "

@@ -475,6 +475,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     renderSupplyDemand(data.supply_demand);
     renderDisclosures(data.disclosures);
+
+    const shortLinkEl = document.getElementById("short-trade-link");
+    if (shortLinkEl && data.code) {
+      shortLinkEl.href = `https://finance.naver.com/item/short_trade.naver?code=${encodeURIComponent(data.code)}`;
+    }
   }
 
   function renderDisclosures(disclosures) {
@@ -603,7 +608,33 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderTechnical(data) {
     const summary = data.price_summary || {};
+    const returns = data.period_returns || {};
     techAsOfEl.textContent = `기준일: ${data.as_of || "-"}`;
+
+    [
+      ["ret-1w", returns["1w"]],
+      ["ret-1m", returns["1m"]],
+      ["ret-3m", returns["3m"]],
+      ["ret-6m", returns["6m"]],
+    ].forEach(([elId, val]) => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.className = "return-kpi-val";
+      if (val == null || Number.isNaN(Number(val))) {
+        el.textContent = "-";
+        el.classList.add("net-flat");
+      } else if (val > 0) {
+        el.textContent = `+${val.toFixed(2)}%`;
+        el.classList.add("net-buy");
+      } else if (val < 0) {
+        el.textContent = `${val.toFixed(2)}%`;
+        el.classList.add("net-sell");
+      } else {
+        el.textContent = "0.00%";
+        el.classList.add("net-flat");
+      }
+    });
+
     techCloseEl.textContent = summary.latest_close != null ? `${formatNumber(summary.latest_close)}원` : "-";
     techVolumeEl.textContent = summary.volume != null ? `${formatNumber(summary.volume)}주` : "-";
     techRsiEl.textContent = summary.rsi_14 != null ? `${summary.rsi_14}` : "-";
@@ -1317,6 +1348,24 @@ document.addEventListener("DOMContentLoaded", () => {
       savePortfolioToStorage();
     });
   }
+  document.querySelectorAll(".rebal-preset-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const cashPct = Number(btn.dataset.cashPct) || 20;
+      const rows = rebalRowsEl ? rebalRowsEl.querySelectorAll(".rebal-row") : [];
+      if (rebalCashTargetInput) rebalCashTargetInput.value = cashPct;
+      if (rows.length > 0) {
+        const remain = 100 - cashPct;
+        const base = Math.floor(remain / rows.length);
+        let extra = remain - base * rows.length;
+        rows.forEach((row) => {
+          const val = base + (extra > 0 ? 1 : 0);
+          if (extra > 0) extra -= 1;
+          row.querySelector(".rebal-target-input").value = val;
+        });
+      }
+      savePortfolioToStorage();
+    });
+  });
   if (rebalCashInput) rebalCashInput.addEventListener("input", savePortfolioToStorage);
   if (rebalCashTargetInput) rebalCashTargetInput.addEventListener("input", savePortfolioToStorage);
   if (rebalCalcBtn) rebalCalcBtn.addEventListener("click", runRebalanceCalc);
