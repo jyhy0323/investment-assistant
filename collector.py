@@ -167,10 +167,12 @@ def fetch_integration_info(code: str, result: dict) -> dict:
     result["snapshot"]["market_cap"] = parse_korean_amount(info_map.get("marketValue"))
     result["snapshot"]["per"] = clean_number(info_map.get("per"), as_float=True)
     result["snapshot"]["pbr"] = clean_number(info_map.get("pbr"), as_float=True)
+    result["snapshot"]["foreign_rate"] = clean_number(info_map.get("foreignRate"), as_float=True)
 
     logger.info(
         f"[PARSE]    투자정보 파싱 완료 (market_cap={result['snapshot']['market_cap']}, "
-        f"per={result['snapshot']['per']}, pbr={result['snapshot']['pbr']})"
+        f"per={result['snapshot']['per']}, pbr={result['snapshot']['pbr']}, "
+        f"foreign_rate={result['snapshot']['foreign_rate']})"
     )
     return result
 

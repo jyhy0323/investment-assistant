@@ -9,10 +9,7 @@
 <body>
   <div class="container">
     <header class="header">
-      <div class="header-top">
-        <h1>AI 주식 종합 분석 &amp; 브리핑 앱</h1>
-        <a href="/test" class="nav-test-link">1차 수집기 테스트 (/test)</a>
-      </div>
+      <h1>AI 주식 종합 분석 &amp; 브리핑 앱</h1>
       <p class="subtitle">네이버 금융·Serper 뉴스·FinanceDataReader 데이터를 수집해 Dify AI 챗봇이 분석해 드립니다.</p>
     </header>
 
@@ -90,6 +87,21 @@
           <div class="metric-item">
             <span class="metric-label">PBR (주가순자산비율)</span>
             <strong id="pbr-value" class="metric-value">-</strong>
+          </div>
+        </div>
+
+        <!-- 외국인 지분율 도넛 차트 -->
+        <div class="donut-section">
+          <div class="donut-canvas-wrap">
+            <canvas id="foreign-donut-chart" width="150" height="150"></canvas>
+          </div>
+          <div class="donut-info">
+            <h3>외국인 지분율 (보유 비중)</h3>
+            <p id="foreign-rate-desc" class="donut-desc">전체 상장 주식 중 외국인 투자자가 보유한 비율입니다.</p>
+            <div class="donut-legend">
+              <span class="legend-item"><i class="dot dot-foreign"></i>외국인 <strong id="foreign-pct-text">-</strong></span>
+              <span class="legend-item"><i class="dot dot-domestic"></i>국내·기타 <strong id="domestic-pct-text">-</strong></span>
+            </div>
           </div>
         </div>
       </section>
@@ -176,6 +188,25 @@
           <div class="metric-item">
             <span class="metric-label">최근 20일 최저가</span>
             <strong id="tech-low20" class="metric-value">-</strong>
+          </div>
+        </div>
+
+        <!-- RSI(14) 도넛 게이지 -->
+        <div class="donut-section">
+          <div class="donut-canvas-wrap">
+            <canvas id="rsi-donut-chart" width="150" height="150"></canvas>
+          </div>
+          <div class="donut-info">
+            <div class="donut-title-row">
+              <h3>RSI (14일) 과열·침체 게이지</h3>
+              <span id="rsi-status-badge" class="rsi-badge neutral">-</span>
+            </div>
+            <p id="rsi-desc" class="donut-desc">30 이하는 과매도(침체), 70 이상은 과매수(과열) 구간으로 해석합니다.</p>
+            <div class="donut-legend">
+              <span class="legend-item"><i class="dot dot-rsi-low"></i>과매도 (0~30)</span>
+              <span class="legend-item"><i class="dot dot-rsi-mid"></i>중립 (30~70)</span>
+              <span class="legend-item"><i class="dot dot-rsi-high"></i>과매수 (70~100)</span>
+            </div>
           </div>
         </div>
       </section>

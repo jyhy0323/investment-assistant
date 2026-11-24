@@ -33,6 +33,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const pbrValueEl = document.getElementById("pbr-value");
   const financialsBodyEl = document.getElementById("financials-body");
   const newsListEl = document.getElementById("news-list");
+  const foreignDonutEl = document.getElementById("foreign-donut-chart");
+  const foreignPctTextEl = document.getElementById("foreign-pct-text");
+  const domesticPctTextEl = document.getElementById("domestic-pct-text");
 
   // [탭 2] 지표해석기 요소
   const techAiAnswerEl = document.getElementById("tech-ai-answer");
@@ -50,6 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const candlesBodyEl = document.getElementById("candles-body");
   const techChartEl = document.getElementById("tech-chart");
   const chartTooltipEl = document.getElementById("chart-tooltip");
+  const rsiDonutEl = document.getElementById("rsi-donut-chart");
+  const rsiStatusBadgeEl = document.getElementById("rsi-status-badge");
+  const rsiDescEl = document.getElementById("rsi-desc");
   let activeChartSeries = [];
 
   function showStatus(msg) {
@@ -178,6 +184,158 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${sign}${abs.toLocaleString("ko-KR")}원`;
   }
 
+  function drawForeignDonut(rate) {
+    if (!foreignDonutEl) return;
+    const size = 140;
+    const dpr = window.devicePixelRatio || 1;
+    foreignDonutEl.width = size * dpr;
+    foreignDonutEl.height = size * dpr;
+
+    const ctx = foreignDonutEl.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = 54;
+    const lineWidth = 18;
+    const hasVal = rate != null && !Number.isNaN(Number(rate));
+    const clamped = hasVal ? Math.max(0, Math.min(100, Number(rate))) : 0;
+
+    // 배경 링 (국내·기타)
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = lineWidth;
+    ctx.stroke();
+
+    // 외국인 보유 비율 링
+    if (hasVal && clamped > 0) {
+      const startAngle = -Math.PI / 2;
+      const endAngle = startAngle + (clamped / 100) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, startAngle, endAngle);
+      ctx.strokeStyle = "#2563eb";
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
+    // 중앙 텍스트
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 18px sans-serif";
+    ctx.fillText(hasVal ? `${clamped.toFixed(1)}%` : "-", cx, cy - 6);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "11px sans-serif";
+    ctx.fillText("외국인", cx, cy + 14);
+
+    if (foreignPctTextEl && domesticPctTextEl) {
+      foreignPctTextEl.textContent = hasVal ? `${clamped.toFixed(2)}%` : "-";
+      domesticPctTextEl.textContent = hasVal ? `${(100 - clamped).toFixed(2)}%` : "-";
+    }
+  }
+
+  function drawRsiDonut(rsi) {
+    if (!rsiDonutEl) return;
+    const size = 140;
+    const dpr = window.devicePixelRatio || 1;
+    rsiDonutEl.width = size * dpr;
+    rsiDonutEl.height = size * dpr;
+
+    const ctx = rsiDonutEl.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = 54;
+    const lineWidth = 18;
+    const hasVal = rsi != null && !Number.isNaN(Number(rsi));
+    const clamped = hasVal ? Math.max(0, Math.min(100, Number(rsi))) : 0;
+
+    // 3구간 배경 가이드 링 (연한 색: 0~30 과매도, 30~70 중립, 70~100 과매수)
+    const startBase = -Math.PI / 2;
+    const zones = [
+      [0, 30, "#dbeafe"],
+      [30, 70, "#e2e8f0"],
+      [70, 100, "#fee2e2"],
+    ];
+    zones.forEach(([from, to, color]) => {
+      ctx.beginPath();
+      ctx.arc(
+        cx,
+        cy,
+        radius,
+        startBase + (from / 100) * Math.PI * 2,
+        startBase + (to / 100) * Math.PI * 2
+      );
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    });
+
+    // 현재 RSI 색상 및 상태 판정
+    let activeColor = "#64748b";
+    let statusText = "중립 구간";
+    let badgeClass = "neutral";
+    let descText = "현재 과열도 침체도 아닌 중립적인 매매 심리 구간입니다.";
+
+    if (!hasVal) {
+      statusText = "-";
+      descText = "RSI(14) 데이터가 없습니다.";
+    } else if (clamped <= 30) {
+      activeColor = "#2563eb";
+      statusText = "과매도 (침체)";
+      badgeClass = "oversold";
+      descText = "단기 낙폭이 커서 매도세가 과하게 몰린 과매도 구간입니다.";
+    } else if (clamped >= 70) {
+      activeColor = "#dc2626";
+      statusText = "과매수 (과열)";
+      badgeClass = "overbought";
+      descText = "단기 매수세가 강하게 몰려 과열(차익실현 주의) 구간입니다.";
+    } else if (clamped <= 40) {
+      activeColor = "#3b82f6";
+      statusText = "중립 (약세권)";
+      badgeClass = "oversold";
+      descText = "과매도(30)에 근접한 약세 구간으로 반등 여부를 지켜볼 자리입니다.";
+    } else if (clamped >= 60) {
+      activeColor = "#f97316";
+      statusText = "중립 (강세권)";
+      badgeClass = "overbought";
+      descText = "매수 심리가 우세한 강세 구간으로 과매수(70) 진입 여부를 체크하세요.";
+    }
+
+    // 현재 RSI 값 채우기 아크
+    if (hasVal && clamped > 0) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, startBase, startBase + (clamped / 100) * Math.PI * 2);
+      ctx.strokeStyle = activeColor;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
+    // 중앙 텍스트
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "bold 19px sans-serif";
+    ctx.fillText(hasVal ? clamped.toFixed(1) : "-", cx, cy - 6);
+    ctx.fillStyle = "#64748b";
+    ctx.font = "11px sans-serif";
+    ctx.fillText("RSI (14)", cx, cy + 14);
+
+    if (rsiStatusBadgeEl) {
+      rsiStatusBadgeEl.textContent = statusText;
+      rsiStatusBadgeEl.className = `rsi-badge ${badgeClass}`;
+    }
+    if (rsiDescEl) {
+      rsiDescEl.textContent = descText;
+    }
+  }
+
   function switchTab(nextTab) {
     currentTab = nextTab;
     console.log(`[TAB]       탭 전환 (${currentTab})`);
@@ -191,11 +349,13 @@ document.addEventListener("DOMContentLoaded", () => {
       panelTechnical.classList.add("hidden");
       if (state.fundamental.data) {
         panelFundamental.classList.remove("hidden");
+        drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
       }
     } else {
       panelFundamental.classList.add("hidden");
       if (state.technical.data) {
         panelTechnical.classList.remove("hidden");
+        drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
         drawTechChart(activeChartSeries);
       }
     }
@@ -478,7 +638,10 @@ document.addEventListener("DOMContentLoaded", () => {
         "🤖 Dify AI 챗봇이 수집된 데이터를 분석하고 있습니다... (잠시만 기다려 주세요)"
       );
       panelEl.classList.remove("hidden");
-      if (mode === "technical") {
+      if (mode === "fundamental") {
+        drawForeignDonut((collected.snapshot || {}).foreign_rate);
+      } else {
+        drawRsiDonut((collected.price_summary || {}).rsi_14);
         drawTechChart(activeChartSeries);
       }
       console.log("[RENDER]    화면 렌더링 완료");
