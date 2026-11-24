@@ -24,6 +24,16 @@ def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") 
         return f"{user_question.strip()}\n\n[참고 데이터]\n{data_json}"
 
     if mode == "fundamental":
+        if stock_data.get("asset_type") == "etf":
+            return (
+                "아래는 네이버 금융(ETF 시세·기초지수·운용사·총보수·NAV·분배율·20일 외인/기관/개인 수급 동향)과 Serper 뉴스에서 수집한 ETF 데이터입니다. "
+                "주식 초보자(주린이)도 이해하기 쉽게 다음 항목을 정리해 주세요:\n"
+                "1) 이 ETF가 무엇에 투자하는 상품인지 (기초지수, 운용사, 순자산 규모, 총보수/수수료 평가)\n"
+                "2) NAV(순자산가치) 대비 괴리율 및 분배율(배당) 특징\n"
+                "3) 개인·외국인·기관의 단기(5일) 및 중기(20일) 수급 동향 해석\n"
+                "4) 주린이 관점에서 [장점/긍정 요인]과 [주의할 리스크(환율·변동성 등)] 정리\n\n"
+                f"{data_json}"
+            )
         return (
             "아래는 네이버 금융(시세·밸류에이션·실적·20일 외인/기관/개인 수급 동향), Open DART 최근 공식 공시, Serper 뉴스에서 수집한 종목 데이터입니다. "
             "주식 초보자(주린이)도 이해하기 쉽게 다음 항목을 정리해 주세요:\n"

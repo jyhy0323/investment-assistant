@@ -442,8 +442,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderFundamental(data) {
     const snap = data.snapshot || {};
+    const isEtf = data.asset_type === "etf";
     stockNameEl.textContent = data.name || "알 수 없음";
-    stockCodeBadgeEl.textContent = data.code || "-";
+    stockCodeBadgeEl.textContent = isEtf ? `${data.code || "-"} · ETF` : (data.code || "-");
     currentPriceEl.textContent =
       snap.current_price != null ? `${formatNumber(snap.current_price)}원` : "-";
 
@@ -462,9 +463,41 @@ document.addEventListener("DOMContentLoaded", () => {
       changeRateEl.classList.add("flat");
     }
 
-    marketCapEl.textContent = formatKoreanWon(snap.market_cap);
-    perValueEl.textContent = snap.per != null ? `${snap.per}배` : "-";
-    pbrValueEl.textContent = snap.pbr != null ? `${snap.pbr}배` : "-";
+    const stockMetricsGridEl = document.getElementById("stock-metrics-grid");
+    const etfInfoGridEl = document.getElementById("etf-info-grid");
+    const foreignDonutSecEl = document.getElementById("foreign-donut-section");
+    const financialsCardEl = document.getElementById("financials-card");
+    const dartCardEl = document.getElementById("dart-card");
+
+    if (isEtf) {
+      if (stockMetricsGridEl) stockMetricsGridEl.classList.add("hidden");
+      if (foreignDonutSecEl) foreignDonutSecEl.classList.add("hidden");
+      if (financialsCardEl) financialsCardEl.classList.add("hidden");
+      if (dartCardEl) dartCardEl.classList.add("hidden");
+      if (etfInfoGridEl) etfInfoGridEl.classList.remove("hidden");
+
+      const etf = data.etf_info || {};
+      const setTxt = (id, txt) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = txt;
+      };
+      setTxt("etf-issuer", etf.issuer || "-");
+      setTxt("etf-base-index", etf.base_index || "-");
+      setTxt("etf-market-cap", etf.total_nav && etf.total_nav !== "-" ? etf.total_nav : formatKoreanWon(snap.market_cap));
+      setTxt("etf-fee", etf.total_fee || "-");
+      setTxt("etf-nav", etf.nav != null ? `${formatNumber(Math.round(etf.nav))}원` : "-");
+      setTxt("etf-div-yield", etf.dividend_yield != null ? `${etf.dividend_yield}%` : "-");
+    } else {
+      if (stockMetricsGridEl) stockMetricsGridEl.classList.remove("hidden");
+      if (foreignDonutSecEl) foreignDonutSecEl.classList.remove("hidden");
+      if (financialsCardEl) financialsCardEl.classList.remove("hidden");
+      if (dartCardEl) dartCardEl.classList.remove("hidden");
+      if (etfInfoGridEl) etfInfoGridEl.classList.add("hidden");
+
+      marketCapEl.textContent = formatKoreanWon(snap.market_cap);
+      perValueEl.textContent = snap.per != null ? `${snap.per}배` : "-";
+      pbrValueEl.textContent = snap.pbr != null ? `${snap.pbr}배` : "-";
+    }
 
     financialsBodyEl.innerHTML = "";
     const financials = data.financials || [];

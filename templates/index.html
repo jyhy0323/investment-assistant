@@ -52,6 +52,7 @@
         <button type="button" class="example-btn" data-code="000660"><i class="chip-dot"></i>SK하이닉스 <span>000660</span></button>
         <button type="button" class="example-btn" data-code="005930"><i class="chip-dot"></i>삼성전자 <span>005930</span></button>
         <button type="button" class="example-btn" data-code="035420"><i class="chip-dot"></i>NAVER <span>035420</span></button>
+        <button type="button" class="example-btn" data-code="360750"><i class="chip-dot"></i>TIGER 미국S&amp;P500 <span>360750</span></button>
       </div>
     </section>
 
@@ -93,7 +94,7 @@
             <span id="change-rate" class="change-rate">-</span>
           </div>
         </div>
-        <div class="snapshot-grid">
+        <div id="stock-metrics-grid" class="snapshot-grid">
           <div class="metric-item">
             <span class="metric-label">시가총액</span>
             <strong id="market-cap" class="metric-value">-</strong>
@@ -108,8 +109,36 @@
           </div>
         </div>
 
+        <!-- ETF 전용 핵심 정보 그리드 (ETF 조회 시 자동 표시) -->
+        <div id="etf-info-grid" class="snapshot-grid hidden">
+          <div class="metric-item">
+            <span class="metric-label">운용사</span>
+            <strong id="etf-issuer" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">기초지수</span>
+            <strong id="etf-base-index" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">순자산 규모 (시총)</span>
+            <strong id="etf-market-cap" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">총보수 (연 수수료) <span class="help-tip" data-tip="ETF를 보유하는 동안 매년 차감되는 운용 수수료입니다. 장기 투자할수록 낮을수록 유리합니다.">?</span></span>
+            <strong id="etf-fee" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">NAV (순자산가치) <span class="help-tip" data-tip="ETF가 담고 있는 실제 자산 1주당 가치입니다. 현재가와 비슷할수록(괴리율이 작을수록) 정상 가격입니다.">?</span></span>
+            <strong id="etf-nav" class="metric-value">-</strong>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">분배율 (연 배당)</span>
+            <strong id="etf-div-yield" class="metric-value">-</strong>
+          </div>
+        </div>
+
         <!-- 외국인 지분율 도넛 차트 -->
-        <div class="donut-section">
+        <div id="foreign-donut-section" class="donut-section">
           <div class="donut-canvas-wrap">
             <canvas id="foreign-donut-chart" width="150" height="150"></canvas>
           </div>
@@ -176,7 +205,7 @@
       </section>
 
       <!-- 기업실적분석 표 -->
-      <section class="card">
+      <section id="financials-card" class="card">
         <div class="section-title-row">
           <h2>기업실적분석 (연간)</h2>
           <span class="legend-note">※ <strong>(E) 추정치</strong>는 확정 실적이 아닌 증권가 예상치입니다.</span>
@@ -198,7 +227,7 @@
       </section>
 
       <!-- DART 최근 공식 공시 카드 -->
-      <section class="card">
+      <section id="dart-card" class="card">
         <div class="section-title-row">
           <h2>📢 DART 최근 공식 공시 (최근 3개월)</h2>
           <span class="legend-note">금감원 전자공시 1차 원문 · 클릭 시 원문 이동</span>
@@ -464,6 +493,6 @@
     </footer>
   </div>
 
-  <script src="{{ url_for('static', filename='app.js', v='toss3') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v='toss4') }}"></script>
 </body>
 </html>

@@ -101,11 +101,14 @@ def fetch_basic_info(code: str) -> dict:
     result = {
         "code": str(code).strip() if code else "",
         "name": None,
+        "asset_type": "stock",
         "snapshot": {
             "current_price": None,
             "change_rate": None,
         },
+        "etf_info": None,
         "financials": [],
+        "disclosures": [],
         "news": [],
         "errors": [],
     }
@@ -133,12 +136,14 @@ def fetch_basic_info(code: str) -> dict:
 
     current_price = clean_number(data.get("closePrice"), as_float=False)
     change_rate = clean_number(data.get("fluctuationsRatio"), as_float=True)
+    end_type = str(data.get("stockEndType", "")).lower()
 
     result["name"] = stock_name
+    result["asset_type"] = "etf" if end_type == "etf" else "stock"
     result["snapshot"]["current_price"] = current_price
     result["snapshot"]["change_rate"] = change_rate
 
-    logger.info(f"[PARSE]    스냅샷 기본 시세 파싱 완료 (name={stock_name}, price={current_price})")
+    logger.info(f"[PARSE]    스냅샷 기본 시세 파싱 완료 (name={stock_name}, type={result['asset_type']}, price={current_price})")
     return result
 
 
@@ -164,6 +169,31 @@ def fetch_integration_info(code: str, result: dict) -> dict:
         return result
 
     info_map = {item.get("code"): item.get("value") for item in total_infos if isinstance(item, dict)}
+
+    if result.get("asset_type") == "etf":
+        etf_ind = data.get("etfKeyIndicator") if isinstance(data.get("etfKeyIndicator"), dict) else {}
+        market_cap = parse_korean_amount(etf_ind.get("marketValue") or info_map.get("marketValue"))
+        result["snapshot"]["market_cap"] = market_cap
+        result["snapshot"]["per"] = None
+        result["snapshot"]["pbr"] = None
+        result["snapshot"]["foreign_rate"] = None
+
+        nav_val = clean_number(info_map.get("nav") or etf_ind.get("nav"), as_float=True)
+        fee_val = info_map.get("fundPay")
+        if not fee_val and etf_ind.get("totalFee") is not None:
+            fee_val = f"{etf_ind.get('totalFee')}%"
+
+        result["etf_info"] = {
+            "issuer": info_map.get("issueName") or etf_ind.get("issuerName") or "-",
+            "base_index": info_map.get("etfBaseIdx") or "-",
+            "total_fee": fee_val or "-",
+            "nav": nav_val,
+            "dividend_yield": clean_number(etf_ind.get("dividendYieldTtm"), as_float=True),
+            "deviation_rate": clean_number(etf_ind.get("deviationRate"), as_float=True),
+            "total_nav": etf_ind.get("totalNav") or "-",
+        }
+        logger.info(f"[PARSE]    ETF 전용 정보 파싱 완료 (issuer={result['etf_info']['issuer']}, index={result['etf_info']['base_index']})")
+        return result
 
     result["snapshot"]["market_cap"] = parse_korean_amount(info_map.get("marketValue"))
     result["snapshot"]["per"] = clean_number(info_map.get("per"), as_float=True)
@@ -467,20 +497,22 @@ def fetch_supply_demand(code: str, result: dict) -> dict:
 
 
 def collect_all(code: str) -> dict:
-    """종목코드를 받아 시세, 투자정보, 기업실적, 수급 동향, DART 공시, Serper 뉴스를 순차 수집한다."""
+    """종목코드를 받아 시세, 투자정보(또는 ETF 정보), 기업실적, 수급 동향, DART 공시, Serper 뉴스를 순차 수집한다."""
     result = fetch_basic_info(code)
     if not result.get("name"):
         return result
 
     result = fetch_integration_info(result["code"], result)
-    result = fetch_financials(result["code"], result)
+
+    # ETF는 기업실적표와 DART 기업공시가 없으므로 오류 없이 건너뛴다.
+    if result.get("asset_type") != "etf":
+        result = fetch_financials(result["code"], result)
+        disclosures, dart_err = fetch_dart_disclosures(result["code"])
+        result["disclosures"] = disclosures
+        if dart_err:
+            result["errors"].append(dart_err)
+
     result = fetch_supply_demand(result["code"], result)
-
-    disclosures, dart_err = fetch_dart_disclosures(result["code"])
-    result["disclosures"] = disclosures
-    if dart_err:
-        result["errors"].append(dart_err)
-
     result = fetch_serper_news(result["name"], result)
     return result
 
