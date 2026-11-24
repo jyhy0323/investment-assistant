@@ -40,15 +40,17 @@ def health_check():
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     dify_fund_key = os.getenv("DIFY_FUNDAMENTAL_API_KEY", "").strip()
     dify_tech_key = os.getenv("DIFY_TECHNICAL_API_KEY", "").strip()
+    dart_key = os.getenv("DART_API_KEY", "").strip()
 
     serper_configured = bool(serper_key and not serper_key.startswith("여기에"))
     gemini_configured = bool(gemini_key and not gemini_key.startswith("여기에"))
     dify_fund_configured = bool(dify_fund_key and not dify_fund_key.startswith("여기에"))
     dify_tech_configured = bool(dify_tech_key and not dify_tech_key.startswith("여기에"))
+    dart_configured = bool(dart_key and not dart_key.startswith("여기에"))
 
     logger.info(
         f"[HEALTH] 상태 점검 요청 - Serper: {serper_configured}, Gemini: {gemini_configured}, "
-        f"Dify(종목분석): {dify_fund_configured}, Dify(지표해석): {dify_tech_configured}"
+        f"Dify(종목분석): {dify_fund_configured}, Dify(지표해석): {dify_tech_configured}, DART: {dart_configured}"
     )
 
     return jsonify({
@@ -58,7 +60,8 @@ def health_check():
             "serper_news_api": "configured" if serper_configured else "missing",
             "gemini_api": "configured" if gemini_configured else "missing",
             "dify_fundamental_api": "configured" if dify_fund_configured else "missing",
-            "dify_technical_api": "configured" if dify_tech_configured else "missing"
+            "dify_technical_api": "configured" if dify_tech_configured else "missing",
+            "dart_api": "configured" if dart_configured else "missing"
         }
     }), 200
 

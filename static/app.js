@@ -60,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const perValueEl = document.getElementById("per-value");
   const pbrValueEl = document.getElementById("pbr-value");
   const financialsBodyEl = document.getElementById("financials-body");
+  const dartListEl = document.getElementById("dart-list");
   const newsListEl = document.getElementById("news-list");
   const foreignDonutEl = document.getElementById("foreign-donut-chart");
   const foreignPctTextEl = document.getElementById("foreign-pct-text");
@@ -473,6 +474,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderSupplyDemand(data.supply_demand);
+    renderDisclosures(data.disclosures);
+  }
+
+  function renderDisclosures(disclosures) {
+    if (!dartListEl) return;
+    dartListEl.innerHTML = "";
+    const list = disclosures || [];
+    if (list.length === 0) {
+      dartListEl.innerHTML = `<li class="news-item">최근 3개월간 조회된 DART 공식 공시가 없습니다.</li>`;
+      return;
+    }
+
+    list.forEach((item) => {
+      const li = document.createElement("li");
+      li.className = "news-item";
+      const tagClass = item.tag === "positive" ? "positive" : item.tag === "negative" ? "negative" : "info";
+      li.innerHTML = `
+        <div class="dart-item-top">
+          <span class="dart-badge ${tagClass}">${escapeHtml(item.tag_label || "일반 공시")}</span>
+          <a class="news-title" style="margin-bottom:0;" href="${escapeHtml(item.url || "#")}" target="_blank" rel="noopener noreferrer">${escapeHtml(item.title)}</a>
+        </div>
+        <span class="news-meta">${escapeHtml(item.date)} · 제출인: ${escapeHtml(item.submitter || "-")}</span>
+      `;
+      dartListEl.appendChild(li);
+    });
   }
 
   function formatSignedQty(num) {

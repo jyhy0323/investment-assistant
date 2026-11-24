@@ -15,3 +15,6 @@ __pycache__/
 
 # 임시 수집 데이터 파일
 stock_analysis_data.json
+
+# Open DART 고유번호 로컬 캐시
+dart_corp_map.json

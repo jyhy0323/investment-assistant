@@ -4,6 +4,7 @@ import re
 import time
 import requests
 from dotenv import load_dotenv
+from dart_client import fetch_dart_disclosures
 
 load_dotenv()
 
@@ -466,7 +467,7 @@ def fetch_supply_demand(code: str, result: dict) -> dict:
 
 
 def collect_all(code: str) -> dict:
-    """종목코드를 받아 시세, 투자정보, 기업실적, 수급 동향, Serper 뉴스를 순차 수집한다."""
+    """종목코드를 받아 시세, 투자정보, 기업실적, 수급 동향, DART 공시, Serper 뉴스를 순차 수집한다."""
     result = fetch_basic_info(code)
     if not result.get("name"):
         return result
@@ -474,6 +475,12 @@ def collect_all(code: str) -> dict:
     result = fetch_integration_info(result["code"], result)
     result = fetch_financials(result["code"], result)
     result = fetch_supply_demand(result["code"], result)
+
+    disclosures, dart_err = fetch_dart_disclosures(result["code"])
+    result["disclosures"] = disclosures
+    if dart_err:
+        result["errors"].append(dart_err)
+
     result = fetch_serper_news(result["name"], result)
     return result
 
