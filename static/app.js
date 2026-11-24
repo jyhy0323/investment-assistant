@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const applyTheme = (theme) => {
     document.documentElement.setAttribute("data-theme", theme);
     if (themeToggleBtn) {
-      themeToggleBtn.textContent = theme === "dark" ? "☀️ 라이트모드" : "🌙 다크모드";
+      themeToggleBtn.textContent = theme === "dark" ? "라이트모드" : "다크모드";
     }
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);

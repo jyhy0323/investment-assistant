@@ -3,57 +3,64 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI 주식 종합 분석 앱 (Dify + FinanceDataReader)</title>
+  <title>AI 투자증권 — 종목·차트·포트폴리오 분석</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='toss9') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='wts1') }}" />
 </head>
 <body>
-  <!-- 토스증권 스타일 상단 고정 네비게이션 바 -->
+  <!-- 상단 고정 WTS 네비게이션 바 -->
   <header class="toss-topbar">
     <div class="topbar-inner">
-      <div class="brand-area">
-        <span class="brand-logo">A</span>
-        <span class="brand-title">AI 투자증권</span>
+      <div class="topbar-left">
+        <div class="brand-area">
+          <span class="brand-logo" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+              <polyline points="16 7 22 7 22 13"></polyline>
+            </svg>
+          </span>
+          <span class="brand-title">AI 투자증권</span>
+        </div>
+
+        <nav class="tab-nav topbar-tabs" role="tablist">
+          <button type="button" class="tab-btn active" data-tab="fundamental">종목분석</button>
+          <button type="button" class="tab-btn" data-tab="technical">차트·지표</button>
+          <button type="button" class="tab-btn" data-tab="rebalance">리밸런싱</button>
+        </nav>
       </div>
 
-      <nav class="tab-nav topbar-tabs" role="tablist">
-        <button type="button" class="tab-btn active" data-tab="fundamental">종목분석</button>
-        <button type="button" class="tab-btn" data-tab="technical">차트·지표</button>
-        <button type="button" class="tab-btn" data-tab="rebalance">리밸런싱</button>
-      </nav>
-
       <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" title="다크모드 / 라이트모드 전환">
-        🌙 다크모드
+        다크모드
       </button>
     </div>
   </header>
 
   <div class="container">
-    <!-- 히어로 & 스포트라이트 검색창 -->
-    <section id="search-section" class="search-section toss-hero-search">
-      <div class="hero-copy">
-        <h1>어떤 종목을 분석해 볼까요?</h1>
-        <p class="subtitle">실시간 시세·수급·DART 공시·차트 지표까지 AI가 한눈에 브리핑해 드려요</p>
-      </div>
-      <form id="search-form" class="search-form toss-search-pill">
-        <span class="search-icon">🔍</span>
+    <!-- 컴팩트 WTS 커맨드 검색 바 -->
+    <section id="search-section" class="search-section wts-command-bar">
+      <form id="search-form" class="search-form wts-search-form">
+        <svg class="search-svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
         <input
           type="text"
           id="stock-code"
           name="code"
           maxlength="10"
-          placeholder="국내 6자리 코드 또는 미국 티커 (예: 000660, NVDA, AAPL)"
+          placeholder="종목코드 6자리 또는 미국 티커 (예: 000660, NVDA)"
           autocomplete="off"
         />
-        <button type="submit" id="analyze-btn">분석하기</button>
+        <button type="submit" id="analyze-btn">조회</button>
       </form>
+
       <div class="quick-examples">
-        <span class="quick-label">인기 종목</span>
-        <button type="button" class="example-btn" data-code="000660"><i class="chip-dot"></i>SK하이닉스 <span>000660</span></button>
-        <button type="button" class="example-btn" data-code="005930"><i class="chip-dot"></i>삼성전자 <span>005930</span></button>
-        <button type="button" class="example-btn" data-code="360750"><i class="chip-dot"></i>TIGER S&amp;P500 <span>360750</span></button>
-        <button type="button" class="example-btn" data-code="NVDA"><i class="chip-dot"></i>엔비디아 <span>NVDA</span></button>
-        <button type="button" class="example-btn" data-code="AAPL"><i class="chip-dot"></i>애플 <span>AAPL</span></button>
+        <span class="quick-label">빠른 선택</span>
+        <button type="button" class="example-btn" data-code="000660">SK하이닉스 <span>000660</span></button>
+        <button type="button" class="example-btn" data-code="005930">삼성전자 <span>005930</span></button>
+        <button type="button" class="example-btn" data-code="360750">TIGER S&amp;P500 <span>360750</span></button>
+        <button type="button" class="example-btn" data-code="NVDA">엔비디아 <span>NVDA</span></button>
+        <button type="button" class="example-btn" data-code="AAPL">애플 <span>AAPL</span></button>
       </div>
     </section>
 
@@ -61,406 +68,423 @@
     <div id="status-message" class="status-message hidden"></div>
     <div id="error-box" class="error-box hidden"></div>
 
-    <!-- [탭 1] 투자종목분석 패널 -->
-    <main id="panel-fundamental" class="tab-panel result-area hidden">
-      <!-- AI 챗봇 브리핑 카드 -->
-      <section class="card ai-card">
-        <div class="section-title-row">
-          <h2>🤖 Dify [투자종목분석] AI 브리핑</h2>
-          <span class="badge">Chatbot</span>
-        </div>
-        <div id="fund-ai-answer" class="chat-thread">분석 대기 중...</div>
-        <div id="fund-quick-questions" class="quick-questions hidden">
-          <span class="quick-q-label">💡 추천 질문:</span>
-          <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="현재 PER·PBR 수준이 초보자가 보기에 부담스러운 편인가요?">PER·PBR 적정성</button>
-          <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="최근 5일·20일 외인/기관 수급 흐름에서 가장 주의해야 할 신호는 무엇인가요?">수급 핵심 주의점</button>
-          <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="추정치(E) 실적이 예상보다 못 나올 경우 어떤 리스크가 생길까요?">추정치(E) 리스크</button>
-          <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="이 종목을 장기 투자 관점으로 볼 때 꼭 체크해야 할 3가지를 알려주세요.">장기투자 체크포인트</button>
-        </div>
-        <form id="fund-chat-form" class="followup-form hidden">
-          <input type="text" id="fund-followup-input" placeholder="이 종목에 대해 추가 질문을 입력하세요..." autocomplete="off" />
-          <button type="submit">질문하기</button>
-        </form>
-      </section>
-
-      <!-- 스냅샷 카드 -->
-      <section class="card">
-        <div class="stock-header">
-          <div>
-            <h2 id="stock-name">-</h2>
-            <span id="stock-code-badge" class="badge">-</span>
-          </div>
-          <div class="price-box">
-            <span id="current-price" class="current-price">-</span>
-            <span id="change-rate" class="change-rate">-</span>
-          </div>
-        </div>
-        <div id="stock-metrics-grid" class="snapshot-grid">
-          <div class="metric-item">
-            <span class="metric-label">시가총액</span>
-            <strong id="market-cap" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">PER (주가수익비율) <span class="help-tip" data-tip="주가를 1주당 순이익으로 나눈 값. 숫자가 낮을수록 이익 대비 저평가로 봅니다 (예: 5배 = 5년 이익으로 본전).">?</span></span>
-            <strong id="per-value" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">PBR (주가순자산비율) <span class="help-tip" data-tip="주가를 1주당 순자산으로 나눈 값. 1배 미만이면 회사 청산가치보다 싸게 거래된다는 뜻입니다.">?</span></span>
-            <strong id="pbr-value" class="metric-value">-</strong>
-          </div>
-        </div>
-
-        <!-- ETF 전용 핵심 정보 그리드 (ETF 조회 시 자동 표시) -->
-        <div id="etf-info-grid" class="snapshot-grid hidden">
-          <div class="metric-item">
-            <span class="metric-label">운용사</span>
-            <strong id="etf-issuer" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">기초지수</span>
-            <strong id="etf-base-index" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">순자산 규모 (시총)</span>
-            <strong id="etf-market-cap" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">총보수 (연 수수료) <span class="help-tip" data-tip="ETF를 보유하는 동안 매년 차감되는 운용 수수료입니다. 장기 투자할수록 낮을수록 유리합니다.">?</span></span>
-            <strong id="etf-fee" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">NAV (순자산가치) <span class="help-tip" data-tip="ETF가 담고 있는 실제 자산 1주당 가치입니다. 현재가와 비슷할수록(괴리율이 작을수록) 정상 가격입니다.">?</span></span>
-            <strong id="etf-nav" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">분배율 (연 배당)</span>
-            <strong id="etf-div-yield" class="metric-value">-</strong>
-          </div>
-        </div>
-
-        <!-- 외국인 지분율 도넛 차트 -->
-        <div id="foreign-donut-section" class="donut-section">
-          <div class="donut-canvas-wrap">
-            <canvas id="foreign-donut-chart" width="150" height="150"></canvas>
-          </div>
-          <div class="donut-info">
-            <h3>외국인 지분율 (보유 비중) <span class="help-tip" data-tip="전체 발행 주식 중 외국인이 들고 있는 비중입니다. 높을수록 외국인 매수/매도에 주가가 크게 반응합니다.">?</span></h3>
-            <p id="foreign-rate-desc" class="donut-desc">전체 상장 주식 중 외국인 투자자가 보유한 비율입니다.</p>
-            <div class="donut-legend">
-              <span class="legend-item"><i class="dot dot-foreign"></i>외국인 <strong id="foreign-pct-text">-</strong></span>
-              <span class="legend-item"><i class="dot dot-domestic"></i>국내·기타 <strong id="domestic-pct-text">-</strong></span>
+    <!-- [탭 1] 종목분석 패널 (2컬럼 WTS 레이아웃) -->
+    <main id="panel-fundamental" class="tab-panel hidden">
+      <div class="wts-grid">
+        <!-- 좌측 메인 데이터 컬럼 -->
+        <div class="wts-main">
+          <!-- 스냅샷 카드 -->
+          <section class="card">
+            <div class="stock-header">
+              <div class="stock-title-group">
+                <h2 id="stock-name">-</h2>
+                <span id="stock-code-badge" class="badge">-</span>
+              </div>
+              <div class="price-box">
+                <span id="current-price" class="current-price">-</span>
+                <span id="change-rate" class="change-rate">-</span>
+              </div>
             </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- 수급 분석 & 주린이 신호등 카드 -->
-      <section class="card" id="supply-demand-card">
-        <div class="section-title-row">
-          <h2>수급 분석 &amp; 주린이 신호등 (외인·기관·개인)</h2>
-          <div class="header-actions-inline">
-            <span id="fr-change-badge" class="badge">20일 외인지분 변화: -</span>
-            <a id="short-trade-link" class="short-link-btn" href="https://finance.naver.com/item/short_trade.naver?code=000660" target="_blank" rel="noopener noreferrer">공매도 현황 바로보기 ↗</a>
-            <span class="help-tip" data-tip="공매도는 주가 하락에 베팅하는 거래입니다. 아래 '주린이 공매도 읽는 법'을 펼쳐 확인 기준을 보세요!">?</span>
-          </div>
+            <div id="stock-metrics-grid" class="snapshot-grid">
+              <div class="metric-item">
+                <span class="metric-label">시가총액</span>
+                <strong id="market-cap" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">PER <span class="help-tip" data-tip="주가를 1주당 순이익으로 나눈 값. 숫자가 낮을수록 이익 대비 저평가로 봅니다 (예: 5배 = 5년 이익으로 본전).">?</span></span>
+                <strong id="per-value" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">PBR <span class="help-tip" data-tip="주가를 1주당 순자산으로 나눈 값. 1배 미만이면 회사 청산가치보다 싸게 거래된다는 뜻입니다.">?</span></span>
+                <strong id="pbr-value" class="metric-value">-</strong>
+              </div>
+            </div>
+
+            <!-- ETF 전용 핵심 정보 그리드 -->
+            <div id="etf-info-grid" class="snapshot-grid hidden">
+              <div class="metric-item">
+                <span class="metric-label">운용사</span>
+                <strong id="etf-issuer" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">기초지수</span>
+                <strong id="etf-base-index" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">순자산 규모</span>
+                <strong id="etf-market-cap" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">총보수 (연) <span class="help-tip" data-tip="ETF를 보유하는 동안 매년 차감되는 운용 수수료입니다. 장기 투자할수록 낮을수록 유리합니다.">?</span></span>
+                <strong id="etf-fee" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">NAV <span class="help-tip" data-tip="ETF가 담고 있는 실제 자산 1주당 가치입니다. 현재가와 비슷할수록 정상 가격입니다.">?</span></span>
+                <strong id="etf-nav" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">분배율 (연)</span>
+                <strong id="etf-div-yield" class="metric-value">-</strong>
+              </div>
+            </div>
+
+            <!-- 외국인 지분율 도넛 차트 -->
+            <div id="foreign-donut-section" class="donut-section">
+              <div class="donut-canvas-wrap">
+                <canvas id="foreign-donut-chart" width="150" height="150"></canvas>
+              </div>
+              <div class="donut-info">
+                <h3>외국인 지분율 <span class="help-tip" data-tip="전체 발행 주식 중 외국인이 들고 있는 비중입니다. 높을수록 외국인 매수/매도에 주가가 크게 반응합니다.">?</span></h3>
+                <p id="foreign-rate-desc" class="donut-desc">전체 상장 주식 중 외국인 투자자가 보유한 비율입니다.</p>
+                <div class="donut-legend">
+                  <span class="legend-item"><i class="dot dot-foreign"></i>외국인 <strong id="foreign-pct-text">-</strong></span>
+                  <span class="legend-item"><i class="dot dot-domestic"></i>국내·기타 <strong id="domestic-pct-text">-</strong></span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 수급 분석 & 신호등 카드 -->
+          <section class="card" id="supply-demand-card">
+            <div class="section-title-row">
+              <h2>투자자별 수급 동향</h2>
+              <div class="header-actions-inline">
+                <span id="fr-change-badge" class="badge">20일 외인지분 변화: -</span>
+                <a id="short-trade-link" class="short-link-btn" href="https://finance.naver.com/item/short_trade.naver?code=000660" target="_blank" rel="noopener noreferrer">공매도 현황 ↗</a>
+                <span class="help-tip" data-tip="공매도는 주가 하락에 베팅하는 거래입니다. 아래 '공매도 읽는 법'을 펼쳐 확인 기준을 보세요.">?</span>
+              </div>
+            </div>
+
+            <div class="signal-grid">
+              <div class="signal-box positive">
+                <h3><i class="status-dot green"></i>긍정 수급 신호</h3>
+                <ul id="signal-positive-list"></ul>
+              </div>
+              <div class="signal-box negative">
+                <h3><i class="status-dot red"></i>주의 수급 신호</h3>
+                <ul id="signal-negative-list"></ul>
+              </div>
+            </div>
+
+            <div class="supply-summary-grid">
+              <div class="supply-period-box">
+                <h4>단기 수급 (5거래일 누적)</h4>
+                <div class="supply-bars" id="supply-bars-5d"></div>
+              </div>
+              <div class="supply-period-box">
+                <h4>중기 수급 (20거래일 누적)</h4>
+                <div class="supply-bars" id="supply-bars-20d"></div>
+              </div>
+            </div>
+
+            <div class="table-wrapper" style="margin-top: 14px;">
+              <table class="financials-table">
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>외국인 (주)</th>
+                    <th>기관 (주)</th>
+                    <th>개인 (주)</th>
+                    <th>외인 지분율</th>
+                  </tr>
+                </thead>
+                <tbody id="supply-daily-body"></tbody>
+              </table>
+            </div>
+
+            <details class="short-guide">
+              <summary>공매도 현황 페이지에서 어떤 신호를 보면 될까요?</summary>
+              <div class="short-guide-body">
+                <p class="short-guide-intro"><strong>공매도</strong>는 주가 하락을 예상해 주식을 빌려 먼저 파는 거래입니다. 위 <strong>공매도 현황 ↗</strong>에서 아래 3가지를 확인해 보세요.</p>
+                <ul class="short-guide-list">
+                  <li><strong class="net-sell">단기 하방 압력:</strong> 하루 공매도 거래비중이 <strong>10~15% 이상</strong>으로 급증할 때</li>
+                  <li><strong class="net-sell">중기 부담 누적:</strong> 공매도 잔고 비중이 <strong>3% 이상</strong> 계속 늘어날 때</li>
+                  <li><strong class="net-buy">반등 신호 (숏커버링):</strong> 많던 공매도 잔고가 <strong>빠르게 줄어들기 시작</strong>할 때</li>
+                </ul>
+              </div>
+            </details>
+          </section>
+
+          <!-- 기업실적분석 표 -->
+          <section id="financials-card" class="card">
+            <div class="section-title-row">
+              <h2>연간 실적 추이</h2>
+              <span class="legend-note"><strong>(E) 추정치</strong>는 증권사 컨센서스 예상치입니다</span>
+            </div>
+            <div class="table-wrapper">
+              <table class="financials-table">
+                <thead>
+                  <tr>
+                    <th>기간</th>
+                    <th>구분</th>
+                    <th>매출액</th>
+                    <th>영업이익</th>
+                    <th>ROE (%) <span class="help-tip" data-tip="자기자본이익률. 주주 돈으로 1년간 몇 % 이익을 냈는지 보여줍니다 (보통 10% 이상이면 우수).">?</span></th>
+                  </tr>
+                </thead>
+                <tbody id="financials-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- DART 최근 공식 공시 -->
+          <section id="dart-card" class="card">
+            <div class="section-title-row">
+              <h2>DART 공식 공시</h2>
+              <span class="legend-note">최근 3개월 · 클릭 시 금감원 원문 이동</span>
+            </div>
+            <ul id="dart-list" class="news-list"></ul>
+          </section>
+
+          <!-- 최신 뉴스 리스트 -->
+          <section class="card">
+            <div class="section-title-row">
+              <h2>최신 관련 뉴스</h2>
+              <span class="legend-note">Serper News</span>
+            </div>
+            <ul id="news-list" class="news-list"></ul>
+          </section>
         </div>
 
-        <!-- 긍정 / 부정 신호등 2열 박스 -->
-        <div class="signal-grid">
-          <div class="signal-box positive">
-            <h3>🟢 긍정적 수급 신호</h3>
-            <ul id="signal-positive-list"></ul>
-          </div>
-          <div class="signal-box negative">
-            <h3>🔴 부정적 / 주의 신호</h3>
-            <ul id="signal-negative-list"></ul>
-          </div>
-        </div>
-
-        <!-- 단기(5일) vs 중기(20일) 누적 순매수 비교 -->
-        <div class="supply-summary-grid">
-          <div class="supply-period-box">
-            <h4>단기 수급 (최근 5거래일 누적)</h4>
-            <div class="supply-bars" id="supply-bars-5d"></div>
-          </div>
-          <div class="supply-period-box">
-            <h4>중기 수급 (최근 20거래일 누적)</h4>
-            <div class="supply-bars" id="supply-bars-20d"></div>
-          </div>
-        </div>
-
-        <!-- 최근 5거래일 일별 수급 표 -->
-        <div class="table-wrapper" style="margin-top: 14px;">
-          <table class="financials-table">
-            <thead>
-              <tr>
-                <th>날짜</th>
-                <th>외국인 (주)</th>
-                <th>기관 (주)</th>
-                <th>개인 (주)</th>
-                <th>외인 지분율</th>
-              </tr>
-            </thead>
-            <tbody id="supply-daily-body"></tbody>
-          </table>
-        </div>
-
-        <!-- 주린이 공매도 읽는 법 가이드 (접기/펼치기) -->
-        <details class="short-guide">
-          <summary>📖 주린이 가이드: 공매도 현황 페이지에서 어떤 신호를 보면 될까요?</summary>
-          <div class="short-guide-body">
-            <p class="short-guide-intro"><strong>공매도</strong>는 주가가 떨어질 것으로 예상해 주식을 빌려 먼저 파는 거래입니다. 위 <strong>「공매도 현황 바로보기 ↗」</strong>를 열었을 때 아래 3가지만 체크해 보세요!</p>
-            <ul class="short-guide-list">
-              <li><strong class="net-sell">🔴 주의 신호 (하락 베팅 급증):</strong> 하루 <strong>공매도 거래비중이 10~15% 이상</strong>으로 갑자기 뛰면 단기 하방 압력이 강해졌다는 신호입니다.</li>
-              <li><strong class="net-sell">🔴 중기 부담 (잔고 누적):</strong> 전체 주식 대비 <strong>공매도 잔고 비중이 3% 이상</strong> 계속 늘어나면 큰손들이 하락을 길게 보고 있다는 뜻입니다.</li>
-              <li><strong class="net-buy">🟢 반등 신호 (숏커버링):</strong> 반대로 많던 <strong>공매도 잔고가 빠르게 줄어들기 시작</strong>하면, 빌린 주식을 다시 사서 갚는 매수세(숏커버링)가 유입되며 주가가 반등하는 계기가 되기도 합니다.</li>
-            </ul>
-          </div>
-        </details>
-      </section>
-
-      <!-- 기업실적분석 표 -->
-      <section id="financials-card" class="card">
-        <div class="section-title-row">
-          <h2>기업실적분석 (연간)</h2>
-          <span class="legend-note">※ <strong>(E) 추정치</strong>는 확정 실적이 아닌 증권가 예상치입니다.</span>
-        </div>
-        <div class="table-wrapper">
-          <table class="financials-table">
-            <thead>
-              <tr>
-                <th>기간</th>
-                <th>구분</th>
-                <th>매출액</th>
-                <th>영업이익</th>
-                <th>ROE (%) <span class="help-tip" data-tip="자기자본이익률. 주주 돈으로 1년간 몇 % 이익을 냈는지 보여줍니다 (보통 10% 이상이면 우수).">?</span></th>
-              </tr>
-            </thead>
-            <tbody id="financials-body"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- DART 최근 공식 공시 카드 -->
-      <section id="dart-card" class="card">
-        <div class="section-title-row">
-          <h2>📢 DART 최근 공식 공시 (최근 3개월)</h2>
-          <span class="legend-note">금감원 전자공시 1차 원문 · 클릭 시 원문 이동</span>
-        </div>
-        <ul id="dart-list" class="news-list"></ul>
-      </section>
-
-      <!-- 최신 뉴스 리스트 -->
-      <section class="card">
-        <h2>최신 관련 뉴스 (Serper)</h2>
-        <ul id="news-list" class="news-list"></ul>
-      </section>
+        <!-- 우측 고정 AI 애널리스트 사이드바 -->
+        <aside class="wts-sidebar">
+          <section class="card ai-card sidebar-ai-card">
+            <div class="section-title-row">
+              <div class="ai-title-wrap">
+                <span class="ai-dot"></span>
+                <h2>AI 종목 애널리스트</h2>
+              </div>
+              <span class="badge">Dify</span>
+            </div>
+            <div id="fund-ai-answer" class="chat-thread sidebar-chat">분석 대기 중...</div>
+            <div id="fund-quick-questions" class="quick-questions hidden">
+              <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="현재 PER·PBR 수준이 초보자가 보기에 부담스러운 편인가요?">PER·PBR 적정성</button>
+              <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="최근 5일·20일 외인/기관 수급 흐름에서 가장 주의해야 할 신호는 무엇인가요?">수급 주의점</button>
+              <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="추정치(E) 실적이 예상보다 못 나올 경우 어떤 리스크가 생길까요?">추정치 리스크</button>
+              <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="이 종목을 장기 투자 관점으로 볼 때 꼭 체크해야 할 3가지를 알려주세요.">장기 체크포인트</button>
+            </div>
+            <form id="fund-chat-form" class="followup-form hidden">
+              <input type="text" id="fund-followup-input" placeholder="종목에 대해 무엇이든 물어보세요" autocomplete="off" />
+              <button type="submit">전송</button>
+            </form>
+          </section>
+        </aside>
+      </div>
     </main>
 
-    <!-- [탭 2] 지표해석기 (기술적 분석) 패널 -->
-    <main id="panel-technical" class="tab-panel result-area hidden">
-      <!-- AI 챗봇 브리핑 카드 -->
-      <section class="card ai-card">
-        <div class="section-title-row">
-          <h2>📈 Dify [지표해석기] AI 기술적 분석</h2>
-          <span class="badge">Chatbot</span>
-        </div>
-        <div id="tech-ai-answer" class="chat-thread">분석 대기 중...</div>
-        <div id="tech-quick-questions" class="quick-questions hidden">
-          <span class="quick-q-label">💡 추천 질문:</span>
-          <button type="button" class="quick-q-btn" data-mode="technical" data-q="현재 이동평균선(5·20·60일선) 배열이 초보자에게 어떤 의미인가요?">이평선 배열 해석</button>
-          <button type="button" class="quick-q-btn" data-mode="technical" data-q="지금 RSI(14) 수치라면 분할 매수를 고민할 구간인가요, 관망할 구간인가요?">RSI 구간 대응법</button>
-          <button type="button" class="quick-q-btn" data-mode="technical" data-q="추세가 상승으로 전환되었다고 판단하려면 어떤 신호들을 확인해야 하나요?">추세 전환 조건</button>
-          <button type="button" class="quick-q-btn" data-mode="technical" data-q="초보자가 이 차트를 보고 손절선과 익절 기준을 어떻게 세우면 좋을까요?">손절·익절 기준</button>
-        </div>
-        <form id="tech-chat-form" class="followup-form hidden">
-          <input type="text" id="tech-followup-input" placeholder="차트나 지표에 대해 추가 질문을 입력하세요..." autocomplete="off" />
-          <button type="submit">질문하기</button>
-        </form>
-      </section>
-
-      <!-- 기술적 지표 요약 카드 -->
-      <section class="card">
-        <div class="section-title-row">
-          <h2>기술적 지표 요약 (FinanceDataReader)</h2>
-          <span id="tech-as-of" class="badge">기준일: -</span>
-        </div>
-
-        <!-- 기간별 수익률 KPI 카드 -->
-        <div class="return-kpi-grid">
-          <div class="return-kpi-item">
-            <span class="metric-label">최근 1주 (5일)</span>
-            <strong id="ret-1w" class="return-kpi-val">-</strong>
-          </div>
-          <div class="return-kpi-item">
-            <span class="metric-label">최근 1개월</span>
-            <strong id="ret-1m" class="return-kpi-val">-</strong>
-          </div>
-          <div class="return-kpi-item">
-            <span class="metric-label">최근 3개월</span>
-            <strong id="ret-3m" class="return-kpi-val">-</strong>
-          </div>
-          <div class="return-kpi-item">
-            <span class="metric-label">최근 6개월</span>
-            <strong id="ret-6m" class="return-kpi-val">-</strong>
-          </div>
-        </div>
-
-        <div class="snapshot-grid tech-grid">
-          <div class="metric-item">
-            <span class="metric-label">최근 종가</span>
-            <strong id="tech-close" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">거래량</span>
-            <strong id="tech-volume" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">RSI (14일) <span class="help-tip" data-tip="최근 14일간 상승압력 vs 하락압력 비율(0~100). 30 이하는 과매도, 70 이상은 과매수로 봅니다.">?</span></span>
-            <strong id="tech-rsi" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">5일 이평선 (MA5) <span class="help-tip" data-tip="최근 5거래일 종가 평균선. 단기 추세를 보여줍니다.">?</span></span>
-            <strong id="tech-ma5" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">20일 이평선 (MA20) <span class="help-tip" data-tip="최근 한 달 평균선(생명선). 주가가 20일선 위에 있으면 단기 상승 추세로 봅니다.">?</span></span>
-            <strong id="tech-ma20" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">60일 이평선 (MA60) <span class="help-tip" data-tip="최근 3개월 평균선(수급선). 중기 추세의 기준선입니다.">?</span></span>
-            <strong id="tech-ma60" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">최근 20일 최고가</span>
-            <strong id="tech-high20" class="metric-value">-</strong>
-          </div>
-          <div class="metric-item">
-            <span class="metric-label">최근 20일 최저가</span>
-            <strong id="tech-low20" class="metric-value">-</strong>
-          </div>
-        </div>
-
-        <!-- RSI(14) 도넛 게이지 -->
-        <div class="donut-section">
-          <div class="donut-canvas-wrap">
-            <canvas id="rsi-donut-chart" width="150" height="150"></canvas>
-          </div>
-          <div class="donut-info">
-            <div class="donut-title-row">
-              <h3>RSI (14일) 과열·침체 게이지</h3>
-              <span id="rsi-status-badge" class="rsi-badge neutral">-</span>
+    <!-- [탭 2] 차트·지표 패널 (2컬럼 WTS 레이아웃) -->
+    <main id="panel-technical" class="tab-panel hidden">
+      <div class="wts-grid">
+        <!-- 좌측 차트 & 지표 메인 컬럼 -->
+        <div class="wts-main">
+          <!-- 주가·이동평균선·볼린저밴드·지지/저항선 차트 카드 -->
+          <section class="card">
+            <div class="section-title-row">
+              <h2>주가 차트 · 이동평균선 · 볼린저밴드</h2>
+              <span id="tech-as-of" class="badge">기준일: -</span>
             </div>
-            <p id="rsi-desc" class="donut-desc">30 이하는 과매도(침체), 70 이상은 과매수(과열) 구간으로 해석합니다.</p>
-            <div class="donut-legend">
-              <span class="legend-item"><i class="dot dot-rsi-low"></i>과매도 (0~30)</span>
-              <span class="legend-item"><i class="dot dot-rsi-mid"></i>중립 (30~70)</span>
-              <span class="legend-item"><i class="dot dot-rsi-high"></i>과매수 (70~100)</span>
+            <div class="chart-legend" style="margin-bottom: 10px;">
+              <span class="legend-item"><i class="dot dot-close"></i>종가</span>
+              <span class="legend-item"><i class="dot dot-ma5"></i>MA5</span>
+              <span class="legend-item"><i class="dot dot-ma20"></i>MA20</span>
+              <span class="legend-item"><i class="dot dot-ma60"></i>MA60</span>
+              <span class="legend-item"><i class="dot dot-bb"></i>볼린저밴드</span>
+              <span class="legend-item"><i class="dot dot-resistance"></i>저항선</span>
+              <span class="legend-item"><i class="dot dot-support"></i>지지선</span>
             </div>
-          </div>
-        </div>
-      </section>
+            <div class="chart-wrapper">
+              <canvas id="tech-chart"></canvas>
+              <div id="chart-tooltip" class="chart-tooltip hidden"></div>
+            </div>
 
-      <!-- 주가 및 이동평균선 차트 카드 -->
-      <section class="card">
-        <div class="section-title-row">
-          <h2>주가·이동평균선 &amp; 지지·저항선 차트 (60거래일)</h2>
-          <div class="chart-legend">
-            <span class="legend-item"><i class="dot dot-close"></i>종가</span>
-            <span class="legend-item"><i class="dot dot-ma5"></i>MA5</span>
-            <span class="legend-item"><i class="dot dot-ma20"></i>MA20</span>
-            <span class="legend-item"><i class="dot dot-ma60"></i>MA60</span>
-            <span class="legend-item"><i class="dot dot-bb"></i>볼린저밴드</span>
-            <span class="legend-item"><i class="dot dot-resistance"></i>저항선</span>
-            <span class="legend-item"><i class="dot dot-support"></i>지지선</span>
-          </div>
-        </div>
-        <div class="chart-wrapper">
-          <canvas id="tech-chart"></canvas>
-          <div id="chart-tooltip" class="chart-tooltip hidden"></div>
-        </div>
-
-        <!-- 지지선·저항선 돌파/이탈 시나리오 가이드 -->
-        <div id="sr-section" class="sr-section hidden">
-          <div class="sr-position-row">
-            <span class="badge">🎯 현재 위치</span>
-            <strong id="sr-position-label">-</strong>
-          </div>
-          <div class="sr-scenario-grid">
-            <div class="sr-card bull">
-              <div class="sr-card-header">
-                <span>🔺 상방 돌파 (저항선)</span>
-                <strong id="sr-resistance-val">-</strong>
+            <!-- 지지선·저항선 돌파/이탈 시나리오 -->
+            <div id="sr-section" class="sr-section hidden">
+              <div class="sr-position-row">
+                <span class="badge">현재 위치</span>
+                <strong id="sr-position-label">-</strong>
               </div>
-              <p id="sr-resistance-reason" class="sr-reason">-</p>
-              <p id="sr-bullish-msg">-</p>
-            </div>
-            <div class="sr-card bear">
-              <div class="sr-card-header">
-                <span>🔻 하방 이탈 (지지선)</span>
-                <strong id="sr-support-val">-</strong>
+              <div class="sr-scenario-grid">
+                <div class="sr-card bull">
+                  <div class="sr-card-header">
+                    <span>상방 돌파 (저항선)</span>
+                    <strong id="sr-resistance-val">-</strong>
+                  </div>
+                  <p id="sr-resistance-reason" class="sr-reason">-</p>
+                  <p id="sr-bullish-msg">-</p>
+                </div>
+                <div class="sr-card bear">
+                  <div class="sr-card-header">
+                    <span>하방 이탈 (지지선)</span>
+                    <strong id="sr-support-val">-</strong>
+                  </div>
+                  <p id="sr-support-reason" class="sr-reason">-</p>
+                  <p id="sr-bearish-msg">-</p>
+                </div>
               </div>
-              <p id="sr-support-reason" class="sr-reason">-</p>
-              <p id="sr-bearish-msg">-</p>
-            </div>
-          </div>
 
-          <!-- 볼린저밴드 설명 카드 -->
-          <div id="bb-box" class="bb-box hidden">
-            <div class="bb-header">
-              <span>📊 볼린저밴드 (20일 ± 2σ) <span class="help-tip" data-tip="주가의 95%가 움직이는 통계적 도로입니다. 상단선에 닿으면 단기 과열, 하단선에 닿으면 단기 과매도로 해석합니다.">?</span></span>
-              <span id="bb-status-badge" class="badge">-</span>
+              <div id="bb-box" class="bb-box hidden">
+                <div class="bb-header">
+                  <span>볼린저밴드 (20일 ± 2σ) <span class="help-tip" data-tip="주가의 95%가 움직이는 통계적 도로입니다. 상단선에 닿으면 단기 과열, 하단선에 닿으면 단기 과매도로 해석합니다.">?</span></span>
+                  <span id="bb-status-badge" class="badge">-</span>
+                </div>
+                <div class="bb-metrics">
+                  <span>상단선 <strong id="bb-upper">-</strong></span>
+                  <span>중심선(20일) <strong id="bb-middle">-</strong></span>
+                  <span>하단선 <strong id="bb-lower">-</strong></span>
+                  <span>밴드 위치(%B) <strong id="bb-percent-b">-</strong></span>
+                </div>
+                <p id="bb-explanation" class="bb-explain">-</p>
+              </div>
             </div>
-            <div class="bb-metrics">
-              <span>상단선 <strong id="bb-upper">-</strong></span>
-              <span>중심선(20일) <strong id="bb-middle">-</strong></span>
-              <span>하단선 <strong id="bb-lower">-</strong></span>
-              <span>밴드 위치(%B) <strong id="bb-percent-b">-</strong></span>
-            </div>
-            <p id="bb-explanation" class="bb-explain">-</p>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <!-- 최근 10일 일봉 표 -->
-      <section class="card">
-        <h2>최근 10거래일 일봉 데이터</h2>
-        <div class="table-wrapper">
-          <table class="financials-table">
-            <thead>
-              <tr>
-                <th>날짜</th>
-                <th>시가</th>
-                <th>고가</th>
-                <th>저가</th>
-                <th>종가</th>
-                <th>거래량</th>
-              </tr>
-            </thead>
-            <tbody id="candles-body"></tbody>
-          </table>
+          <!-- 기간별 수익률 & 핵심 지표 요약 카드 -->
+          <section class="card">
+            <div class="section-title-row">
+              <h2>기간별 수익률 및 핵심 지표</h2>
+            </div>
+
+            <div class="return-kpi-grid">
+              <div class="return-kpi-item">
+                <span class="metric-label">1주</span>
+                <strong id="ret-1w" class="return-kpi-val">-</strong>
+              </div>
+              <div class="return-kpi-item">
+                <span class="metric-label">1개월</span>
+                <strong id="ret-1m" class="return-kpi-val">-</strong>
+              </div>
+              <div class="return-kpi-item">
+                <span class="metric-label">3개월</span>
+                <strong id="ret-3m" class="return-kpi-val">-</strong>
+              </div>
+              <div class="return-kpi-item">
+                <span class="metric-label">6개월</span>
+                <strong id="ret-6m" class="return-kpi-val">-</strong>
+              </div>
+            </div>
+
+            <div class="snapshot-grid tech-grid">
+              <div class="metric-item">
+                <span class="metric-label">최근 종가</span>
+                <strong id="tech-close" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">거래량</span>
+                <strong id="tech-volume" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">RSI (14일) <span class="help-tip" data-tip="최근 14일간 상승압력 vs 하락압력 비율(0~100). 30 이하는 과매도, 70 이상은 과매수로 봅니다.">?</span></span>
+                <strong id="tech-rsi" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">5일선 (MA5) <span class="help-tip" data-tip="최근 5거래일 종가 평균선. 단기 추세를 보여줍니다.">?</span></span>
+                <strong id="tech-ma5" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">20일선 (MA20) <span class="help-tip" data-tip="최근 한 달 평균선(생명선). 주가가 20일선 위에 있으면 단기 상승 추세로 봅니다.">?</span></span>
+                <strong id="tech-ma20" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">60일선 (MA60) <span class="help-tip" data-tip="최근 3개월 평균선(수급선). 중기 추세의 기준선입니다.">?</span></span>
+                <strong id="tech-ma60" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">20일 최고가</span>
+                <strong id="tech-high20" class="metric-value">-</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-label">20일 최저가</span>
+                <strong id="tech-low20" class="metric-value">-</strong>
+              </div>
+            </div>
+
+            <!-- RSI(14) 도넛 게이지 -->
+            <div class="donut-section">
+              <div class="donut-canvas-wrap">
+                <canvas id="rsi-donut-chart" width="150" height="150"></canvas>
+              </div>
+              <div class="donut-info">
+                <div class="donut-title-row">
+                  <h3>RSI (14일) 과열·침체 게이지</h3>
+                  <span id="rsi-status-badge" class="rsi-badge neutral">-</span>
+                </div>
+                <p id="rsi-desc" class="donut-desc">30 이하는 과매도(침체), 70 이상은 과매수(과열) 구간으로 해석합니다.</p>
+                <div class="donut-legend">
+                  <span class="legend-item"><i class="dot dot-rsi-low"></i>과매도 (0~30)</span>
+                  <span class="legend-item"><i class="dot dot-rsi-mid"></i>중립 (30~70)</span>
+                  <span class="legend-item"><i class="dot dot-rsi-high"></i>과매수 (70~100)</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 최근 10일 일봉 표 -->
+          <section class="card">
+            <div class="section-title-row">
+              <h2>최근 10거래일 시세</h2>
+            </div>
+            <div class="table-wrapper">
+              <table class="financials-table">
+                <thead>
+                  <tr>
+                    <th>날짜</th>
+                    <th>시가</th>
+                    <th>고가</th>
+                    <th>저가</th>
+                    <th>종가</th>
+                    <th>거래량</th>
+                  </tr>
+                </thead>
+                <tbody id="candles-body"></tbody>
+              </table>
+            </div>
+          </section>
         </div>
-      </section>
+
+        <!-- 우측 고정 AI 차트 해석기 사이드바 -->
+        <aside class="wts-sidebar">
+          <section class="card ai-card sidebar-ai-card">
+            <div class="section-title-row">
+              <div class="ai-title-wrap">
+                <span class="ai-dot"></span>
+                <h2>AI 차트·지표 해석기</h2>
+              </div>
+              <span class="badge">Dify</span>
+            </div>
+            <div id="tech-ai-answer" class="chat-thread sidebar-chat">분석 대기 중...</div>
+            <div id="tech-quick-questions" class="quick-questions hidden">
+              <button type="button" class="quick-q-btn" data-mode="technical" data-q="현재 이동평균선(5·20·60일선) 배열이 초보자에게 어떤 의미인가요?">이평선 배열 해석</button>
+              <button type="button" class="quick-q-btn" data-mode="technical" data-q="지금 RSI(14) 수치라면 분할 매수를 고민할 구간인가요, 관망할 구간인가요?">RSI 대응법</button>
+              <button type="button" class="quick-q-btn" data-mode="technical" data-q="추세가 상승으로 전환되었다고 판단하려면 어떤 신호들을 확인해야 하나요?">추세 전환 조건</button>
+              <button type="button" class="quick-q-btn" data-mode="technical" data-q="초보자가 이 차트를 보고 손절선과 익절 기준을 어떻게 세우면 좋을까요?">손절·익절 기준</button>
+            </div>
+            <form id="tech-chat-form" class="followup-form hidden">
+              <input type="text" id="tech-followup-input" placeholder="차트나 지표에 대해 물어보세요" autocomplete="off" />
+              <button type="submit">전송</button>
+            </form>
+          </section>
+        </aside>
+      </div>
     </main>
 
     <!-- [탭 3] 리밸런싱 도우미 패널 -->
     <main id="panel-rebalance" class="tab-panel result-area hidden">
-      <!-- 보유 포트폴리오 입력 카드 -->
       <section class="card">
         <div class="section-title-row">
-          <h2>⚖️ 내 포트폴리오 입력 (자동 저장)</h2>
-          <button type="button" id="rebal-sample-btn" class="example-btn">예시 포트폴리오 불러오기</button>
+          <h2>내 포트폴리오 리밸런싱</h2>
+          <button type="button" id="rebal-sample-btn" class="example-btn">예시 불러오기</button>
         </div>
-        <p class="subtitle" style="margin-bottom: 14px;">종목코드 6자리, 보유 수량, 목표 비중(%)을 입력하면 실시간 시세로 리밸런싱 수량을 계산합니다.</p>
+        <p class="subtitle" style="margin-bottom: 14px;">보유 종목과 목표 비중(%)을 입력하면 실시간 시세로 매수·매도 수량을 자동 계산합니다.</p>
 
         <div id="rebal-rows" class="rebal-rows"></div>
 
         <div class="rebal-controls">
           <button type="button" id="rebal-add-row-btn" class="example-btn">+ 종목 추가</button>
-          <span class="preset-label">목표 비중 프리셋:</span>
+          <span class="preset-label">목표 비중 프리셋</span>
           <button type="button" class="example-btn rebal-preset-btn" data-cash-pct="20">균형형 (현금 20%)</button>
           <button type="button" class="example-btn rebal-preset-btn" data-cash-pct="10">공격형 (현금 10%)</button>
-          <button type="button" class="example-btn rebal-preset-btn" data-cash-pct="40">안전 방어형 (현금 40%)</button>
+          <button type="button" class="example-btn rebal-preset-btn" data-cash-pct="40">방어형 (현금 40%)</button>
         </div>
 
         <div class="rebal-cash-row">
@@ -475,83 +499,87 @@
         </div>
 
         <div class="rebal-actions">
-          <button type="button" id="rebal-calc-btn" class="primary-btn">실시간 시세 반영 &amp; 리밸런싱 계산</button>
+          <button type="button" id="rebal-calc-btn" class="primary-btn">실시간 시세 반영 &amp; 계산</button>
           <span id="rebal-target-sum-hint" class="legend-note">목표 비중 합계: 100%</span>
         </div>
       </section>
 
-      <!-- 리밸런싱 계산 결과 영역 -->
-      <div id="rebalance-result" class="result-area hidden">
-        <!-- 경고/체크 배너 -->
-        <div id="rebal-warnings" class="rebal-warnings hidden"></div>
+      <div id="rebalance-result" class="hidden">
+        <div id="rebal-warnings" class="rebal-warnings hidden" style="margin-bottom: 16px;"></div>
 
-        <!-- 현재 vs 목표 도넛 차트 비교 -->
-        <section class="card">
-          <div class="section-title-row">
-            <h2>현재 비중 vs 목표 비중 비교</h2>
-            <span id="rebal-total-badge" class="badge">총 자산: -</span>
-          </div>
-          <div class="dual-donut-grid">
-            <div class="dual-donut-box">
-              <h3>현재 내 계좌 비중</h3>
-              <canvas id="rebal-current-donut" width="170" height="170"></canvas>
-            </div>
-            <div class="dual-donut-box">
-              <h3>목표 비중</h3>
-              <canvas id="rebal-target-donut" width="170" height="170"></canvas>
-            </div>
-          </div>
-          <div id="rebal-legend" class="donut-legend" style="justify-content: center; margin-top: 14px;"></div>
-        </section>
+        <div class="wts-grid">
+          <div class="wts-main">
+            <section class="card">
+              <div class="section-title-row">
+                <h2>현재 비중 vs 목표 비중</h2>
+                <span id="rebal-total-badge" class="badge">총 자산: -</span>
+              </div>
+              <div class="dual-donut-grid">
+                <div class="dual-donut-box">
+                  <h3>현재 내 계좌 비중</h3>
+                  <canvas id="rebal-current-donut" width="170" height="170"></canvas>
+                </div>
+                <div class="dual-donut-box">
+                  <h3>목표 비중</h3>
+                  <canvas id="rebal-target-donut" width="170" height="170"></canvas>
+                </div>
+              </div>
+              <div id="rebal-legend" class="donut-legend" style="justify-content: center; margin-top: 14px;"></div>
+            </section>
 
-        <!-- 리밸런싱 매매 가이드 표 -->
-        <section class="card">
-          <h2>리밸런싱 매매 가이드</h2>
-          <div class="table-wrapper" style="margin-top: 12px;">
-            <table class="financials-table">
-              <thead>
-                <tr>
-                  <th>항목</th>
-                  <th>현재가</th>
-                  <th>보유수량</th>
-                  <th>평가금액</th>
-                  <th>현재 비중</th>
-                  <th>목표 비중</th>
-                  <th>권장 행동</th>
-                </tr>
-              </thead>
-              <tbody id="rebal-table-body"></tbody>
-            </table>
+            <section class="card">
+              <div class="section-title-row">
+                <h2>리밸런싱 매매 가이드</h2>
+              </div>
+              <div class="table-wrapper">
+                <table class="financials-table">
+                  <thead>
+                    <tr>
+                      <th>항목</th>
+                      <th>현재가</th>
+                      <th>보유수량</th>
+                      <th>평가금액</th>
+                      <th>현재 비중</th>
+                      <th>목표 비중</th>
+                      <th>권장 행동</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rebal-table-body"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
-        </section>
 
-        <!-- Dify AI 포트폴리오 진단 카드 -->
-        <section class="card ai-card">
-          <div class="section-title-row">
-            <h2>🤖 Dify AI 포트폴리오 진단 &amp; 상담</h2>
-            <button type="button" id="rebal-ai-btn" class="primary-btn small-btn">AI 포트폴리오 진단 받기</button>
-          </div>
-          <div id="rebal-ai-answer" class="chat-thread">위 'AI 포트폴리오 진단 받기' 버튼을 누르면 현재 포트폴리오 비중과 리스크를 분석해 드립니다.</div>
-          <div id="rebal-quick-questions" class="quick-questions hidden">
-            <span class="quick-q-label">💡 추천 질문:</span>
-            <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="지금 내 포트폴리오에서 가장 위험한 쏠림이나 약점은 무엇인가요?">가장 큰 리스크</button>
-            <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="리밸런싱은 한 번에 전량 조정하는 게 좋을까요, 나눠서 하는 게 좋을까요?">분할 리밸런싱 팁</button>
-            <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="초보자 기준으로 현금 비중은 몇 % 정도 유지하는 게 안전할까요?">적정 현금 비중</button>
-            <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="리밸런싱 주기는 분기별, 반기별, 비중 괴리 기준 중 어떤 게 좋을까요?">리밸런싱 주기 추천</button>
-          </div>
-          <form id="rebal-chat-form" class="followup-form hidden">
-            <input type="text" id="rebal-followup-input" placeholder="내 포트폴리오에 대해 추가 질문을 입력하세요..." autocomplete="off" />
-            <button type="submit">질문하기</button>
-          </form>
-        </section>
+          <aside class="wts-sidebar">
+            <section class="card ai-card sidebar-ai-card">
+              <div class="section-title-row">
+                <div class="ai-title-wrap">
+                  <span class="ai-dot"></span>
+                  <h2>AI 포트폴리오 진단</h2>
+                </div>
+                <button type="button" id="rebal-ai-btn" class="primary-btn small-btn">진단 받기</button>
+              </div>
+              <div id="rebal-ai-answer" class="chat-thread sidebar-chat">위 '진단 받기' 버튼을 누르면 현재 포트폴리오 비중과 리스크를 분석해 드립니다.</div>
+              <div id="rebal-quick-questions" class="quick-questions hidden">
+                <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="지금 내 포트폴리오에서 가장 위험한 쏠림이나 약점은 무엇인가요?">가장 큰 리스크</button>
+                <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="리밸런싱은 한 번에 전량 조정하는 게 좋을까요, 나눠서 하는 게 좋을까요?">분할 리밸런싱</button>
+                <button type="button" class="quick-q-btn" data-mode="rebalance" data-q="초보자 기준으로 현금 비중은 몇 % 정도 유지하는 게 안전할까요?">적정 현금 비중</button>
+              </div>
+              <form id="rebal-chat-form" class="followup-form hidden">
+                <input type="text" id="rebal-followup-input" placeholder="포트폴리오에 대해 물어보세요" autocomplete="off" />
+                <button type="submit">전송</button>
+              </form>
+            </section>
+          </aside>
+        </div>
       </div>
     </main>
 
     <footer class="app-footer">
-      <p>⚠️ 본 웹앱은 투자 학습 및 객관적 데이터 분석을 돕기 위한 참고 도구이며, 특정 종목의 매수·매도를 권유하지 않습니다. 모든 투자 판단과 책임은 본인에게 있습니다.</p>
+      <p>본 서비스는 투자 학습 및 객관적 데이터 분석을 돕기 위한 참고 도구이며, 특정 종목의 매수·매도를 권유하지 않습니다.</p>
     </footer>
   </div>
 
-  <script src="{{ url_for('static', filename='app.js', v='toss8') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v='wts1') }}"></script>
 </body>
 </html>
