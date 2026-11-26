@@ -2964,3 +2964,285 @@ body {
     font-weight: 800;
   }
 }
+
+/* ================= 4종 디자인 테마 스위처 UI ================= */
+.theme-switcher {
+  position: relative;
+}
+
+.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-dot-preview {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--toss-blue);
+  flex-shrink: 0;
+}
+
+.theme-caret {
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+
+.theme-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  background-color: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 16px;
+  padding: 6px;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  animation: fadeSlideUp 0.16s ease;
+}
+
+.theme-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.theme-option:hover {
+  background-color: var(--toss-surface-sub);
+}
+
+.theme-option.active {
+  background-color: var(--toss-blue-soft);
+  border-color: rgba(49, 130, 246, 0.25);
+}
+
+.theme-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  flex-shrink: 0;
+  border: 1px solid rgba(128, 128, 128, 0.28);
+}
+
+.swatch-light     { background: linear-gradient(135deg, #ffffff 45%, #3182f6 100%); }
+.swatch-dark      { background: linear-gradient(135deg, #202027 45%, #4593fc 100%); }
+.swatch-terminal  { background: linear-gradient(135deg, #090d16 40%, #38bdf8 75%, #fbbf24 100%); }
+.swatch-editorial { background: linear-gradient(135deg, #f6f4ef 45%, #163a6b 80%, #b8860b 100%); }
+
+.theme-opt-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.theme-opt-text strong {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--toss-text);
+}
+
+.theme-opt-text small {
+  font-size: 0.72rem;
+  color: var(--toss-text-muted);
+}
+
+@media (max-width: 720px) {
+  #theme-label-text {
+    display: none;
+  }
+}
+
+/* ================= 테마 3: 프로 트레이딩 터미널 (Bloomberg · TradingView 감성) ================= */
+[data-theme="terminal"] {
+  --toss-bg: #090d16;
+  --toss-surface: #101726;
+  --toss-surface-sub: #151f32;
+  --toss-text: #eef4ff;
+  --toss-text-sub: #9fb3cf;
+  --toss-text-muted: #6b82a3;
+  --toss-border: #1e2d47;
+  --toss-divider: #19253b;
+  --toss-blue: #38bdf8;
+  --toss-blue-hover: #0ea5e9;
+  --toss-blue-soft: rgba(56, 189, 248, 0.14);
+  --toss-red: #fb7185;
+  --toss-red-soft: rgba(251, 113, 133, 0.14);
+  --toss-green: #10b981;
+  --toss-green-soft: rgba(16, 185, 129, 0.14);
+  --toss-amber: #fbbf24;
+  --toss-amber-soft: rgba(251, 191, 36, 0.14);
+  --toss-radius-lg: 12px;
+  --toss-radius-md: 8px;
+  --toss-radius-sm: 6px;
+  --toss-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="terminal"] body {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+[data-theme="terminal"] .toss-topbar {
+  background-color: rgba(9, 13, 22, 0.92);
+  border-bottom-color: #1e2d47;
+}
+
+[data-theme="terminal"] .brand-logo {
+  background: linear-gradient(135deg, #0ea5e9 0%, #fbbf24 100%);
+  border-radius: 7px;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.35);
+}
+
+[data-theme="terminal"] .welcome-hero-banner {
+  background: linear-gradient(135deg, #101726 0%, #132138 60%, rgba(56, 189, 248, 0.09) 100%);
+  border-radius: 14px;
+  border-color: #243859;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.1), 0 14px 36px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="terminal"] .gradient-text {
+  background: linear-gradient(95deg, #38bdf8 0%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme="terminal"] .welcome-stock-card,
+[data-theme="terminal"] .welcome-feature-card {
+  border-radius: 10px;
+  background-color: #0d1422;
+}
+
+[data-theme="terminal"] .current-price,
+[data-theme="terminal"] .metric-value,
+[data-theme="terminal"] .return-kpi-val,
+[data-theme="terminal"] .macro-val,
+[data-theme="terminal"] .financials-table td {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", "Pretendard", monospace;
+}
+
+[data-theme="terminal"] .ai-card { border-color: rgba(56, 189, 248, 0.3); }
+[data-theme="terminal"] .signal-box.positive { color: #34d399; }
+[data-theme="terminal"] .signal-box.negative { color: #fda4af; }
+[data-theme="terminal"] .rebal-warnings,
+[data-theme="terminal"] .krx-notice { color: #fde68a; }
+[data-theme="terminal"] .macro-risk-banner.low { color: #34d399; }
+[data-theme="terminal"] .macro-risk-banner.medium { color: #fde68a; }
+[data-theme="terminal"] .macro-risk-banner.high { color: #fda4af; }
+[data-theme="terminal"] .exec-chip.tone-positive { color: #34d399; }
+[data-theme="terminal"] .exec-chip.tone-negative { color: #fda4af; }
+[data-theme="terminal"] .exec-chip.tone-warning { color: #fde68a; }
+[data-theme="terminal"] .exec-chip.tone-info { color: #7dd3fc; }
+[data-theme="terminal"] .krx-level-badge.low,
+[data-theme="terminal"] .krx-level-badge.positive { color: #34d399; }
+[data-theme="terminal"] .krx-level-badge.medium { color: #fde68a; }
+[data-theme="terminal"] .krx-level-badge.high,
+[data-theme="terminal"] .krx-level-badge.negative { color: #fda4af; }
+[data-theme="terminal"] .sr-card.bull { color: #fda4af; }
+[data-theme="terminal"] .sr-card.bear { color: #7dd3fc; }
+[data-theme="terminal"] .news-item:hover { background-color: #1a2740; }
+[data-theme="terminal"] .followup-form button { background-color: #38bdf8; color: #090d16; }
+[data-theme="terminal"] .followup-form input { color: var(--toss-text); }
+[data-theme="terminal"] .mobile-bottom-nav { background-color: rgba(9, 13, 22, 0.95); }
+[data-theme="terminal"] .pwa-install-btn {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: #ffffff;
+}
+
+/* ================= 테마 4: 모던 에디토리얼 (증권사 리서치 리포트 감성) ================= */
+[data-theme="editorial"] {
+  --toss-bg: #f6f4ef;
+  --toss-surface: #ffffff;
+  --toss-surface-sub: #faf8f4;
+  --toss-text: #10233f;
+  --toss-text-sub: #3b4f6b;
+  --toss-text-muted: #76859b;
+  --toss-border: #e2ddd3;
+  --toss-divider: #ece8df;
+  --toss-blue: #163a6b;
+  --toss-blue-hover: #0d274b;
+  --toss-blue-soft: #eaeff7;
+  --toss-red: #b8323c;
+  --toss-red-soft: #fbecef;
+  --toss-green: #126e53;
+  --toss-green-soft: #e9f5f0;
+  --toss-amber: #b8860b;
+  --toss-amber-soft: #fbf5e6;
+  --toss-radius-lg: 14px;
+  --toss-radius-md: 10px;
+  --toss-radius-sm: 7px;
+  --toss-shadow: 0 1px 3px rgba(16, 35, 63, 0.05);
+}
+
+[data-theme="editorial"] body {
+  background-image:
+    radial-gradient(circle at 10% 0%, rgba(22, 58, 107, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 90% 4%, rgba(184, 134, 11, 0.06) 0%, transparent 38%);
+}
+
+[data-theme="editorial"] .toss-topbar {
+  background-color: rgba(246, 244, 239, 0.92);
+  border-bottom: 1px solid #d8d1c5;
+}
+
+[data-theme="editorial"] .brand-logo {
+  background: linear-gradient(135deg, #163a6b 0%, #b8860b 100%);
+  border-radius: 8px;
+  box-shadow: 0 3px 10px rgba(22, 58, 107, 0.25);
+}
+
+[data-theme="editorial"] .welcome-hero-banner {
+  background: linear-gradient(135deg, #ffffff 0%, #f9f6ef 65%, #f2ece0 100%);
+  border: 1px solid #d8d1c5;
+  border-radius: 16px;
+  box-shadow: 0 8px 26px rgba(16, 35, 63, 0.05);
+}
+
+[data-theme="editorial"] .gradient-text {
+  background: linear-gradient(95deg, #163a6b 0%, #b8860b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+[data-theme="editorial"] .welcome-copy h1,
+[data-theme="editorial"] .card h2,
+[data-theme="editorial"] .stock-header h2 {
+  letter-spacing: -0.025em;
+}
+
+[data-theme="editorial"] .welcome-stock-card,
+[data-theme="editorial"] .welcome-feature-card {
+  border-radius: 12px;
+  border-color: #dfd9ce;
+}
+
+[data-theme="editorial"] .hero-stock-card::before {
+  background: linear-gradient(90deg, #163a6b, #b8860b);
+}
+
+[data-theme="editorial"] .pwa-install-btn {
+  background: linear-gradient(135deg, #163a6b 0%, #244f8a 100%);
+  box-shadow: 0 3px 10px rgba(22, 58, 107, 0.24);
+}
+
+[data-theme="editorial"] .mobile-bottom-nav {
+  background-color: rgba(246, 244, 239, 0.96);
+  border-top-color: #d8d1c5;
+}

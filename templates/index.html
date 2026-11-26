@@ -14,7 +14,7 @@
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/icon.svg') }}" />
   <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" />
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='wts5') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='wts6') }}" />
 </head>
 <body>
   <!-- 상단 고정 WTS 네비게이션 바 -->
@@ -44,9 +44,31 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           <span>앱 설치</span>
         </button>
-        <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" title="다크모드 / 라이트모드 전환">
-          다크모드
-        </button>
+        <div class="theme-switcher" id="theme-switcher">
+          <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" aria-haspopup="true" aria-expanded="false" title="디자인 테마 변경">
+            <span class="theme-dot-preview" id="theme-dot-preview"></span>
+            <span id="theme-label-text">핀테크 라이트</span>
+            <span class="theme-caret">▾</span>
+          </button>
+          <div id="theme-menu" class="theme-menu hidden" role="menu">
+            <button type="button" class="theme-option" data-theme-value="light" role="menuitem">
+              <span class="theme-swatch swatch-light"></span>
+              <span class="theme-opt-text"><strong>핀테크 라이트</strong><small>토스·Robinhood 화이트</small></span>
+            </button>
+            <button type="button" class="theme-option" data-theme-value="dark" role="menuitem">
+              <span class="theme-swatch swatch-dark"></span>
+              <span class="theme-opt-text"><strong>핀테크 다크</strong><small>딥 차콜 다크모드</small></span>
+            </button>
+            <button type="button" class="theme-option" data-theme-value="terminal" role="menuitem">
+              <span class="theme-swatch swatch-terminal"></span>
+              <span class="theme-opt-text"><strong>프로 터미널</strong><small>블룸버그·네온 고대비</small></span>
+            </button>
+            <button type="button" class="theme-option" data-theme-value="editorial" role="menuitem">
+              <span class="theme-swatch swatch-editorial"></span>
+              <span class="theme-opt-text"><strong>에디토리얼</strong><small>네이비·아이보리 리포트</small></span>
+            </button>
+          </div>
+        </div>
         {% if auth_enabled %}
         <a href="/logout" class="theme-toggle-btn" title="앱 잠금 (로그아웃)" style="text-decoration: none;">잠금</a>
         {% endif %}
@@ -980,6 +1002,6 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='app.js', v='wts5') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v='wts6') }}"></script>
 </body>
 </html>

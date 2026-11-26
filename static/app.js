@@ -9,22 +9,61 @@ document.addEventListener("DOMContentLoaded", () => {
     rebalance: { code: "PORTFOLIO", data: null, conversationId: "" },
   };
 
-  // 테마(다크/라이트모드) 초기화 및 전환
+  // 4종 디자인 테마 초기화 및 스위처 (light | dark | terminal | editorial)
   const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  const themeLabelText = document.getElementById("theme-label-text");
+  const themeDotPreview = document.getElementById("theme-dot-preview");
+  const themeMenu = document.getElementById("theme-menu");
+  const themeOptions = document.querySelectorAll(".theme-option");
   const metaThemeColor = document.getElementById("meta-theme-color");
   const THEME_STORAGE_KEY = "investment_assistant_theme";
+  const THEME_META = {
+    light:     { label: "핀테크 라이트", dot: "#3182f6", metaColor: "#ffffff" },
+    dark:      { label: "핀테크 다크",   dot: "#4593fc", metaColor: "#17171c" },
+    terminal:  { label: "프로 터미널",   dot: "#38bdf8", metaColor: "#090d16" },
+    editorial: { label: "에디토리얼",    dot: "#163a6b", metaColor: "#f6f4ef" },
+  };
+
+  function isDarkLikeTheme() {
+    const t = document.documentElement.getAttribute("data-theme");
+    return t === "dark" || t === "terminal";
+  }
+
+  function getChartInkColor() {
+    const t = document.documentElement.getAttribute("data-theme");
+    if (t === "terminal") return "#eef4ff";
+    if (t === "dark") return "#f2f4f6";
+    if (t === "editorial") return "#10233f";
+    return "#191f28";
+  }
+
+  const redrawAllChartsForTheme = () => {
+    if (state.fundamental.data) {
+      drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
+      drawFinancialsBarChart(state.fundamental.data.financials || []);
+    }
+    if (state.technical.data) {
+      drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
+      drawTechChart(activeChartSeries);
+    }
+    if (state.rebalance.data) renderRebalanceDonuts(state.rebalance.data);
+  };
+
   const applyTheme = (theme) => {
-    document.documentElement.setAttribute("data-theme", theme);
-    if (themeToggleBtn) {
-      themeToggleBtn.textContent = theme === "dark" ? "라이트모드" : "다크모드";
-    }
-    if (metaThemeColor) {
-      metaThemeColor.setAttribute("content", theme === "dark" ? "#17171c" : "#ffffff");
-    }
+    const safeTheme = THEME_META[theme] ? theme : "light";
+    const info = THEME_META[safeTheme];
+    document.documentElement.setAttribute("data-theme", safeTheme);
+    if (themeLabelText) themeLabelText.textContent = info.label;
+    if (themeDotPreview) themeDotPreview.style.backgroundColor = info.dot;
+    if (metaThemeColor) metaThemeColor.setAttribute("content", info.metaColor);
+    themeOptions.forEach((opt) => {
+      opt.classList.toggle("active", opt.dataset.themeValue === safeTheme);
+    });
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
+      localStorage.setItem(THEME_STORAGE_KEY, safeTheme);
     } catch (_) {}
   };
+
   const savedTheme = (() => {
     try {
       return localStorage.getItem(THEME_STORAGE_KEY) || "light";
@@ -34,19 +73,29 @@ document.addEventListener("DOMContentLoaded", () => {
   })();
   applyTheme(savedTheme);
 
-  if (themeToggleBtn) {
-    themeToggleBtn.addEventListener("click", () => {
-      const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-      applyTheme(next);
-      if (state.fundamental.data) {
-        drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
-        drawFinancialsBarChart(state.fundamental.data.financials || []);
+  if (themeToggleBtn && themeMenu) {
+    themeToggleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = themeMenu.classList.contains("hidden");
+      themeMenu.classList.toggle("hidden", !willOpen);
+      themeToggleBtn.setAttribute("aria-expanded", String(willOpen));
+    });
+
+    themeOptions.forEach((opt) => {
+      opt.addEventListener("click", () => {
+        const next = opt.dataset.themeValue || "light";
+        applyTheme(next);
+        themeMenu.classList.add("hidden");
+        themeToggleBtn.setAttribute("aria-expanded", "false");
+        redrawAllChartsForTheme();
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!themeMenu.classList.contains("hidden") && !e.target.closest("#theme-switcher")) {
+        themeMenu.classList.add("hidden");
+        themeToggleBtn.setAttribute("aria-expanded", "false");
       }
-      if (state.technical.data) {
-        drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
-        drawTechChart(activeChartSeries);
-      }
-      if (state.rebalance.data) renderRebalanceDonuts(state.rebalance.data);
     });
   }
 
@@ -333,7 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 중앙 텍스트
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28");
+    ctx.fillStyle = getChartInkColor();
     ctx.font = "bold 18px sans-serif";
     ctx.fillText(hasVal ? `${clamped.toFixed(1)}%` : "-", cx, cy - 6);
     ctx.fillStyle = "#64748b";
@@ -429,7 +478,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 중앙 텍스트
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28");
+    ctx.fillStyle = getChartInkColor();
     ctx.font = "bold 19px sans-serif";
     ctx.fillText(hasVal ? clamped.toFixed(1) : "-", cx, cy - 6);
     ctx.fillStyle = "#64748b";
@@ -902,7 +951,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
-    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const isDark = isDarkLikeTheme();
     const pad = { top: 24, right: 16, bottom: 32, left: 16 };
     const plotW = width - pad.left - pad.right;
     const plotH = height - pad.top - pad.bottom;
@@ -1368,7 +1417,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const getY = (val) => pad.top + ((maxVal - val) / (maxVal - minVal)) * plotH;
 
     // 가로 눈금선 및 Y축 가격 레이블 (5줄)
-    const isDarkTheme = document.documentElement.getAttribute("data-theme") === "dark";
+    const isDarkTheme = isDarkLikeTheme();
     ctx.font = "11px sans-serif";
     ctx.textAlign = "right";
     ctx.textBaseline = "middle";
@@ -1502,7 +1551,7 @@ document.addEventListener("DOMContentLoaded", () => {
     drawLine("ma60", "#10b981", 1.8);
     drawLine("ma20", "#f59e0b", 1.8);
     drawLine("ma5", "#ef4444", 1.8);
-    drawLine("close", (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28"), 2.2);
+    drawLine("close", getChartInkColor(), 2.2);
 
     // 마우스 호버 세로선 및 포인트 강조
     if (hoverIdx >= 0 && hoverIdx < series.length) {
@@ -1517,7 +1566,7 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.setLineDash([]);
 
       const item = series[hoverIdx];
-      [["close", (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28")], ["ma5", "#ef4444"], ["ma20", "#f59e0b"], ["ma60", "#10b981"]].forEach(([k, c]) => {
+      [["close", getChartInkColor()], ["ma5", "#ef4444"], ["ma20", "#f59e0b"], ["ma60", "#10b981"]].forEach(([k, c]) => {
         if (item[k] != null) {
           ctx.fillStyle = c;
           ctx.beginPath();
@@ -2149,7 +2198,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = (document.documentElement.getAttribute("data-theme") === "dark" ? "#f2f4f6" : "#191f28");
+    ctx.fillStyle = getChartInkColor();
     ctx.font = "bold 14px sans-serif";
     ctx.fillText(centerTop, cx, cy - 7);
     ctx.fillStyle = "#64748b";
