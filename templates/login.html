@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>잠금 해제 — AI 투자증권</title>
+  <meta name="theme-color" id="meta-theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="AI 투자증권" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='icons/icon.svg') }}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}" />
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='wts5') }}" />
+  <style>
+    .lock-page {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    .lock-card {
+      width: 100%;
+      max-width: 390px;
+      background-color: var(--toss-surface);
+      border: 1px solid var(--toss-border);
+      border-radius: 26px;
+      padding: 34px 28px 28px;
+      box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+      text-align: center;
+      animation: fadeSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lock-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #3182f6 0%, #1b64da 60%, #03b26c 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 22px rgba(49, 130, 246, 0.32);
+      margin-bottom: 16px;
+    }
+    .lock-card h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--toss-text);
+      margin-bottom: 6px;
+    }
+    .lock-sub {
+      font-size: 0.88rem;
+      color: var(--toss-text-sub);
+      margin-bottom: 22px;
+      line-height: 1.5;
+    }
+    .lock-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .lock-input {
+      width: 100%;
+      padding: 15px 18px;
+      font-family: inherit;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.28em;
+      text-align: center;
+      color: var(--toss-text);
+      background-color: var(--toss-bg);
+      border: 2px solid transparent;
+      border-radius: 14px;
+      outline: none;
+      transition: all 0.18s ease;
+    }
+    .lock-input:focus {
+      background-color: var(--toss-surface);
+      border-color: var(--toss-blue);
+      box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.14);
+    }
+    .lock-submit {
+      width: 100%;
+      padding: 14px;
+      font-size: 0.98rem;
+      border-radius: 14px;
+    }
+    .lock-error {
+      background-color: var(--toss-red-soft);
+      color: var(--toss-red);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+    .lock-footnote {
+      margin-top: 16px;
+      font-size: 0.77rem;
+      color: var(--toss-text-muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="lock-page">
+    <section class="lock-card">
+      <div class="lock-logo" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+          <polyline points="16 7 22 7 22 13"></polyline>
+        </svg>
+      </div>
+      <h1>AI 투자증권</h1>
+      <p class="lock-sub">개인 API 및 KRX 계정을 보호하기 위해<br />접근 비밀번호를 입력해 주세요.</p>
+
+      {% if error %}
+      <div class="lock-error" role="alert">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="/login" class="lock-form">
+        <input
+          type="password"
+          name="password"
+          class="lock-input"
+          placeholder="••••"
+          autocomplete="current-password"
+          autofocus
+          required
+        />
+        <button type="submit" class="primary-btn lock-submit">잠금 해제</button>
+      </form>
+      <p class="lock-footnote">한 번 해제하면 이 기기에서 30일간 로그인 상태가 유지됩니다.</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("investment_assistant_theme") || "light";
+        document.documentElement.setAttribute("data-theme", saved);
+        var meta = document.getElementById("meta-theme-color");
+        if (meta) meta.setAttribute("content", saved === "dark" ? "#17171c" : "#ffffff");
+      } catch (_) {}
+    })();
+  </script>
+</body>
+</html>

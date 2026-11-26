@@ -47,6 +47,9 @@
         <button type="button" id="theme-toggle-btn" class="theme-toggle-btn" title="다크모드 / 라이트모드 전환">
           다크모드
         </button>
+        {% if auth_enabled %}
+        <a href="/logout" class="theme-toggle-btn" title="앱 잠금 (로그아웃)" style="text-decoration: none;">잠금</a>
+        {% endif %}
       </div>
     </div>
   </header>

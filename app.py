@@ -1,6 +1,10 @@
+import hashlib
+import hmac
 import os
 import logging
-from flask import Flask, jsonify, make_response, render_template, request, send_from_directory
+import time
+from datetime import timedelta
+from flask import Flask, jsonify, make_response, redirect, render_template, request, send_from_directory, session, url_for
 from dotenv import load_dotenv
 from collector import collect_all, fetch_basic_info
 from technical import collect_technical
@@ -8,8 +12,8 @@ from dify_client import ask_dify, build_analysis_prompt
 from krx_client import is_krx_configured
 from macro import collect_macro_overview
 
-# .env 파일에서 환경변수 로드
-load_dotenv()
+# .env 파일에서 환경변수 로드 (실행 경로와 무관하게 app.py 기준 폴더의 .env 탐색)
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 
 # 로깅 기본 설정 (마스터 프롬프트 절대 규칙: print 대신 logging 사용)
 logging.basicConfig(
@@ -21,10 +25,90 @@ logger = logging.getLogger("StockApp")
 
 app = Flask(__name__)
 
+
+def _get_app_password() -> str:
+    pw = os.getenv("APP_PASSWORD", "").strip()
+    if not pw or pw.startswith("여기에"):
+        return ""
+    return pw
+
+
+def _is_auth_enabled() -> bool:
+    return bool(_get_app_password())
+
+
+# Vercel 서버리스 콜드스타트 간에도 30일 로그인 쿠키가 유지되도록 결정적 시크릿 키 생성
+_secret_seed = os.getenv("FLASK_SECRET_KEY", "").strip() or f"investment-assistant-v1:{_get_app_password()}:local"
+app.secret_key = hashlib.sha256(_secret_seed.encode("utf-8")).hexdigest()
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=bool(os.getenv("VERCEL")),
+    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+)
+
+
+@app.before_request
+def require_app_password():
+    """APP_PASSWORD 환경변수가 설정된 경우 미인증 접근(페이지 및 API)을 차단한다."""
+    if not _is_auth_enabled():
+        return None
+
+    path = request.path or "/"
+    if (
+        path in ("/login", "/logout", "/manifest.json", "/sw.js")
+        or path.startswith("/static/")
+    ):
+        return None
+
+    if session.get("authenticated") is True:
+        return None
+
+    if request.method != "GET" or path in ("/health", "/macro"):
+        return jsonify({
+            "errors": ["접근 권한이 필요합니다. 먼저 로그인해 주세요."],
+            "auth_required": True,
+        }), 401
+
+    return redirect(url_for("login_page"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login_page():
+    """간편 비밀번호(PIN) 잠금 해제 화면 및 인증 처리."""
+    if not _is_auth_enabled():
+        return redirect(url_for("index"))
+
+    if request.method == "GET":
+        if session.get("authenticated") is True:
+            return redirect(url_for("index"))
+        return render_template("login.html", error=None)
+
+    expected = _get_app_password()
+    submitted = str(request.form.get("password", "")).strip()
+    if hmac.compare_digest(submitted, expected):
+        session.permanent = True
+        session["authenticated"] = True
+        logger.info("[AUTH]      앱 잠금 해제 성공")
+        return redirect(url_for("index"))
+
+    time.sleep(0.5)
+    logger.warning("[AUTH]      앱 비밀번호 불일치")
+    return render_template("login.html", error="비밀번호가 올바르지 않습니다. 다시 확인해 주세요."), 401
+
+
+@app.route("/logout", methods=["POST", "GET"])
+def logout_page():
+    """세션 쿠키를 초기화하고 잠금 화면으로 이동한다."""
+    session.clear()
+    logger.info("[AUTH]      로그아웃(잠금) 완료")
+    return redirect(url_for("login_page") if _is_auth_enabled() else url_for("index"))
+
+
 @app.route("/", methods=["GET"])
 def index():
     """메인 웹페이지(templates/index.html)를 반환한다."""
-    return render_template("index.html")
+    return render_template("index.html", auth_enabled=_is_auth_enabled())
 
 
 @app.route("/manifest.json", methods=["GET"])
