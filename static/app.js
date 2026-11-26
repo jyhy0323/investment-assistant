@@ -34,7 +34,10 @@ document.addEventListener("DOMContentLoaded", () => {
     themeToggleBtn.addEventListener("click", () => {
       const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
       applyTheme(next);
-      if (state.fundamental.data) drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
+      if (state.fundamental.data) {
+        drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
+        drawFinancialsBarChart(state.fundamental.data.financials || []);
+      }
       if (state.technical.data) {
         drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
         drawTechChart(activeChartSeries);
@@ -52,6 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const exampleBtns = document.querySelectorAll("#search-section .example-btn");
   const statusMessage = document.getElementById("status-message");
   const errorBox = document.getElementById("error-box");
+  const welcomeHeroEl = document.getElementById("welcome-hero");
+  const loadingSkeletonEl = document.getElementById("loading-skeleton");
+  const brandAreaEl = document.querySelector(".brand-area");
 
   // 패널 요소
   const panelFundamental = document.getElementById("panel-fundamental");
@@ -444,6 +450,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     showErrors([]);
+    if (loadingSkeletonEl) loadingSkeletonEl.classList.add("hidden");
     panelFundamental.classList.add("hidden");
     panelTechnical.classList.add("hidden");
     if (panelMacro) panelMacro.classList.add("hidden");
@@ -451,12 +458,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (currentTab === "macro") {
       if (searchSectionEl) searchSectionEl.classList.add("hidden");
+      if (welcomeHeroEl) welcomeHeroEl.classList.add("hidden");
       if (panelMacro) panelMacro.classList.remove("hidden");
       if (!state.macro.data) {
         loadMacroData(false);
       }
     } else if (currentTab === "rebalance") {
       if (searchSectionEl) searchSectionEl.classList.add("hidden");
+      if (welcomeHeroEl) welcomeHeroEl.classList.add("hidden");
       if (panelRebalance) panelRebalance.classList.remove("hidden");
       if (state.rebalance.data) {
         renderRebalanceDonuts(state.rebalance.data);
@@ -464,15 +473,22 @@ document.addEventListener("DOMContentLoaded", () => {
     } else if (currentTab === "fundamental") {
       if (searchSectionEl) searchSectionEl.classList.remove("hidden");
       if (state.fundamental.data) {
+        if (welcomeHeroEl) welcomeHeroEl.classList.add("hidden");
         panelFundamental.classList.remove("hidden");
         drawForeignDonut((state.fundamental.data.snapshot || {}).foreign_rate);
+        drawFinancialsBarChart(state.fundamental.data.financials || []);
+      } else if (welcomeHeroEl) {
+        welcomeHeroEl.classList.remove("hidden");
       }
     } else {
       if (searchSectionEl) searchSectionEl.classList.remove("hidden");
       if (state.technical.data) {
+        if (welcomeHeroEl) welcomeHeroEl.classList.add("hidden");
         panelTechnical.classList.remove("hidden");
         drawRsiDonut((state.technical.data.price_summary || {}).rsi_14);
         drawTechChart(activeChartSeries);
+      } else if (welcomeHeroEl) {
+        welcomeHeroEl.classList.remove("hidden");
       }
     }
   }
@@ -492,24 +508,33 @@ document.addEventListener("DOMContentLoaded", () => {
     currentPriceEl.textContent = formatPrice(snap.current_price, currency);
 
     changeRateEl.className = "change-rate";
+    const heroCardEl = document.getElementById("hero-stock-card");
+    if (heroCardEl) heroCardEl.classList.remove("trend-up", "trend-down", "trend-flat");
     if (snap.change_rate == null) {
       changeRateEl.textContent = "-";
       changeRateEl.classList.add("flat");
+      if (heroCardEl) heroCardEl.classList.add("trend-flat");
     } else if (snap.change_rate > 0) {
       changeRateEl.textContent = `+${snap.change_rate}% ▲`;
       changeRateEl.classList.add("up");
+      if (heroCardEl) heroCardEl.classList.add("trend-up");
     } else if (snap.change_rate < 0) {
       changeRateEl.textContent = `${snap.change_rate}% ▼`;
       changeRateEl.classList.add("down");
+      if (heroCardEl) heroCardEl.classList.add("trend-down");
     } else {
       changeRateEl.textContent = "0% -";
       changeRateEl.classList.add("flat");
+      if (heroCardEl) heroCardEl.classList.add("trend-flat");
     }
+
+    renderExecSummary(data);
 
     const stockMetricsGridEl = document.getElementById("stock-metrics-grid");
     const etfInfoGridEl = document.getElementById("etf-info-grid");
     const foreignDonutSecEl = document.getElementById("foreign-donut-section");
     const supplyCardEl = document.getElementById("supply-demand-card");
+    const krxDeepCardEl = document.getElementById("krx-deep-card");
     const financialsCardEl = document.getElementById("financials-card");
     const dartCardEl = document.getElementById("dart-card");
 
@@ -518,6 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (etfInfoGridEl) etfInfoGridEl.classList.add("hidden");
       if (foreignDonutSecEl) foreignDonutSecEl.classList.add("hidden");
       if (supplyCardEl) supplyCardEl.classList.add("hidden");
+      if (krxDeepCardEl) krxDeepCardEl.classList.add("hidden");
       if (financialsCardEl) financialsCardEl.classList.add("hidden");
       if (dartCardEl) dartCardEl.classList.add("hidden");
 
@@ -528,6 +554,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (stockMetricsGridEl) stockMetricsGridEl.classList.add("hidden");
       if (foreignDonutSecEl) foreignDonutSecEl.classList.add("hidden");
       if (supplyCardEl) supplyCardEl.classList.remove("hidden");
+      if (krxDeepCardEl) krxDeepCardEl.classList.remove("hidden");
       if (financialsCardEl) financialsCardEl.classList.add("hidden");
       if (dartCardEl) dartCardEl.classList.add("hidden");
       if (etfInfoGridEl) etfInfoGridEl.classList.remove("hidden");
@@ -547,6 +574,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (stockMetricsGridEl) stockMetricsGridEl.classList.remove("hidden");
       if (foreignDonutSecEl) foreignDonutSecEl.classList.remove("hidden");
       if (supplyCardEl) supplyCardEl.classList.remove("hidden");
+      if (krxDeepCardEl) krxDeepCardEl.classList.remove("hidden");
       if (financialsCardEl) financialsCardEl.classList.remove("hidden");
       if (dartCardEl) dartCardEl.classList.remove("hidden");
       if (etfInfoGridEl) etfInfoGridEl.classList.add("hidden");
@@ -598,6 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     renderSupplyDemand(data.supply_demand);
+    renderKrxDeep(data.krx_deep);
     renderDisclosures(data.disclosures);
 
     const shortLinkEl = document.getElementById("short-trade-link");
@@ -729,6 +758,455 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
   }
+
+  let activeKrxData = null;
+  let activeKrxPeriod = "mid"; // 'mid' (30일) | 'short' (10일)
+
+  function formatSignedKoreanWon(amount) {
+    if (amount === null || amount === undefined || Number.isNaN(Number(amount))) return "-";
+    const n = Number(amount);
+    if (n === 0) return "0원";
+    const sign = n > 0 ? "+" : "-";
+    return `${sign}${formatKoreanWon(Math.abs(n))}`;
+  }
+
+  function renderExecSummary(data) {
+    const stripEl = document.getElementById("exec-summary-strip");
+    if (!stripEl) return;
+
+    const snap = data.snapshot || {};
+    const isUs = data.market === "US";
+    const isEtf = data.asset_type === "etf";
+    const chips = [];
+
+    // 1) 밸류에이션 / ETF 보수
+    if (isEtf) {
+      const etf = data.etf_info || {};
+      chips.push({
+        label: "ETF 보수·분배",
+        value: `총보수 ${etf.total_fee || "-"}${etf.dividend_yield != null ? " · 분배 " + etf.dividend_yield + "%" : ""}`,
+        tone: "info",
+      });
+    } else {
+      const per = snap.per;
+      const pbr = snap.pbr;
+      let vTone = "neutral";
+      if (per != null && per > 0 && per <= 15) vTone = "positive";
+      else if (per != null && per >= 40) vTone = "warning";
+      chips.push({
+        label: "밸류에이션",
+        value: `PER ${per != null ? per + "배" : "-"} · PBR ${pbr != null ? pbr + "배" : "-"}`,
+        tone: vTone,
+      });
+    }
+
+    if (!isUs) {
+      // 2) 외인·기관 단기 수급
+      const d5 = (data.supply_demand && data.supply_demand.days_5) || null;
+      if (d5) {
+        let sText = "혼조 흐름";
+        let sTone = "neutral";
+        if (d5.foreigner > 0 && d5.organ > 0) {
+          sText = "5일 외인·기관 쌍끌이";
+          sTone = "positive";
+        } else if (d5.foreigner < 0 && d5.organ < 0) {
+          sText = "5일 외인·기관 동반 매도";
+          sTone = "negative";
+        } else if (d5.foreigner > 0) {
+          sText = "5일 외국인 매수 우위";
+          sTone = "positive";
+        } else if (d5.organ > 0) {
+          sText = "5일 기관 매수 우위";
+          sTone = "info";
+        }
+        chips.push({ label: "단기 수급", value: sText, tone: sTone });
+      }
+
+      // 3) KRX 공매도 상태
+      const krx = data.krx_deep || {};
+      const sv = krx.short_volume || {};
+      if (krx.available && sv.latest_ratio_pct != null) {
+        const tone = sv.level === "high" ? "negative" : sv.level === "medium" ? "warning" : "positive";
+        chips.push({
+          label: "KRX 공매도",
+          value: `비중 ${sv.latest_ratio_pct.toFixed(2)}% · ${sv.level === "high" ? "경계" : sv.level === "medium" ? "주의" : "안정"}`,
+          tone,
+        });
+      } else if (krx.available && krx.market_program && krx.market_program.label) {
+        const p = krx.market_program;
+        const pTone = p.level === "positive" ? "positive" : p.level === "negative" ? "negative" : "neutral";
+        chips.push({
+          label: `${p.market_name || "시장"} 프로그램`,
+          value: p.level === "positive" ? "매수 우위" : p.level === "negative" ? "매도 우위" : "중립",
+          tone: pTone,
+        });
+      }
+
+      // 4) DART 공시 요약 (일반 국내주식)
+      if (!isEtf) {
+        const discs = data.disclosures || [];
+        const negCnt = discs.filter((d) => d.tag === "negative").length;
+        const posCnt = discs.filter((d) => d.tag === "positive").length;
+        let dText = discs.length ? `최근 ${discs.length}건 · 특이사항 없음` : "최근 3개월 공시 없음";
+        let dTone = "neutral";
+        if (negCnt > 0) {
+          dText = `주의 공시 ${negCnt}건 확인 필요`;
+          dTone = "negative";
+        } else if (posCnt > 0) {
+          dText = `호재 참고 공시 ${posCnt}건`;
+          dTone = "positive";
+        }
+        chips.push({ label: "DART 공시", value: dText, tone: dTone });
+      }
+    } else {
+      chips.push({ label: "거래소", value: `${data.exchange || "US"} · USD 기준`, tone: "info" });
+      chips.push({ label: "관련 뉴스", value: `최신 ${(data.news || []).length}건 수집`, tone: "neutral" });
+    }
+
+    stripEl.innerHTML = chips
+      .map(
+        (c) => `
+          <div class="exec-chip tone-${escapeHtml(c.tone)}">
+            <span class="exec-chip-label">${escapeHtml(c.label)}</span>
+            <strong class="exec-chip-val">${escapeHtml(c.value)}</strong>
+          </div>
+        `
+      )
+      .join("");
+    stripEl.classList.remove("hidden");
+  }
+
+  function drawFinancialsBarChart(financials) {
+    const wrapEl = document.getElementById("financials-chart-wrap");
+    const canvas = document.getElementById("financials-bar-chart");
+    if (!wrapEl || !canvas) return;
+
+    const validRows = (financials || []).filter((r) => r.revenue != null || r.operating_income != null);
+    if (validRows.length === 0) {
+      wrapEl.classList.add("hidden");
+      return;
+    }
+
+    wrapEl.classList.remove("hidden");
+    const width = canvas.parentElement.clientWidth || 560;
+    const height = 190;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const pad = { top: 24, right: 16, bottom: 32, left: 16 };
+    const plotW = width - pad.left - pad.right;
+    const plotH = height - pad.top - pad.bottom;
+
+    const allVals = [0];
+    validRows.forEach((r) => {
+      if (r.revenue != null) allVals.push(r.revenue);
+      if (r.operating_income != null) allVals.push(r.operating_income);
+    });
+    const minVal = Math.min(...allVals);
+    const maxVal = Math.max(...allVals);
+    const span = maxVal - minVal || 1;
+    const zeroY = pad.top + ((maxVal - 0) / span) * plotH;
+
+    // 0 기준선
+    ctx.strokeStyle = isDark ? "#333540" : "#e5e8eb";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, zeroY);
+    ctx.lineTo(width - pad.right, zeroY);
+    ctx.stroke();
+
+    const groupW = plotW / validRows.length;
+    const barW = Math.min(26, Math.max(12, groupW * 0.24));
+    const gap = 5;
+
+    const fmtShort = (won) => {
+      if (won == null) return "";
+      const abs = Math.abs(won);
+      const sign = won < 0 ? "-" : "";
+      if (abs >= 1e12) return `${sign}${(abs / 1e12).toFixed(1)}조`;
+      if (abs >= 1e8) return `${sign}${Math.round(abs / 1e8).toLocaleString("ko-KR")}억`;
+      return `${sign}${Math.round(abs)}`;
+    };
+
+    validRows.forEach((row, idx) => {
+      const cx = pad.left + groupW * idx + groupW / 2;
+      const isEst = Boolean(row.is_consensus);
+
+      const drawBar = (val, xOffset, color) => {
+        if (val == null) return;
+        const yVal = pad.top + ((maxVal - val) / span) * plotH;
+        const top = Math.min(zeroY, yVal);
+        const h = Math.max(2, Math.abs(zeroY - yVal));
+        const x = cx + xOffset;
+
+        ctx.save();
+        ctx.fillStyle = color;
+        if (isEst) ctx.globalAlpha = 0.78;
+        ctx.beginPath();
+        ctx.roundRect(x, top, barW, h, val >= 0 ? [5, 5, 0, 0] : [0, 0, 5, 5]);
+        ctx.fill();
+        if (isEst) {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = "#f59f00";
+          ctx.lineWidth = 1.4;
+          ctx.setLineDash([3, 2]);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.fillStyle = isDark ? "#b0b8c1" : "#4e5968";
+        ctx.font = "600 10px Pretendard, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = val >= 0 ? "bottom" : "top";
+        ctx.fillText(fmtShort(val), x + barW / 2, val >= 0 ? top - 4 : top + h + 4);
+      };
+
+      drawBar(row.revenue, -barW - gap / 2, "#3182f6");
+      drawBar(row.operating_income, gap / 2, row.operating_income != null && row.operating_income < 0 ? "#f04452" : "#03b26c");
+
+      // X축 기간 라벨
+      ctx.fillStyle = isEst ? "#f59f00" : (isDark ? "#b0b8c1" : "#4e5968");
+      ctx.font = isEst ? "700 11px Pretendard, sans-serif" : "600 11px Pretendard, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const periodLabel = isEst ? `${row.period}(E)` : row.period;
+      ctx.fillText(periodLabel, cx, height - pad.bottom + 10);
+    });
+  }
+
+  function renderKrxInstitutionalList(rows) {
+    const listEl = document.getElementById("krx-inst-list");
+    if (!listEl) return;
+    if (!rows || rows.length === 0) {
+      listEl.innerHTML = `<p class="krx-empty-note">기관별 세부 매매동향 데이터가 없습니다.</p>`;
+      return;
+    }
+
+    const maxAbs = Math.max(...rows.map((r) => Math.abs(r.net_val || 0)), 1);
+    listEl.innerHTML = rows
+      .map((r) => {
+        const val = r.net_val || 0;
+        const halfPct = Math.min(100, Math.round((Math.abs(val) / maxAbs) * 100));
+        const textClass = qtyClass(val);
+        const leftWidth = val < 0 ? halfPct : 0;
+        const rightWidth = val > 0 ? halfPct : 0;
+        return `
+          <div class="krx-inst-item">
+            <div class="krx-inst-top">
+              <div class="krx-inst-name-wrap">
+                <strong class="krx-inst-name">${escapeHtml(r.name)}</strong>
+                <span class="krx-role-tag">${escapeHtml(r.role || "")}</span>
+                <span class="help-tip" data-tip="${escapeHtml(r.impact || "")}">?</span>
+              </div>
+              <div class="krx-inst-nums">
+                <strong class="${textClass}">${escapeHtml(formatSignedKoreanWon(val))}</strong>
+                <span class="krx-inst-vol">(${escapeHtml(formatSignedQty(r.net_vol))}주)</span>
+              </div>
+            </div>
+            <div class="diverging-bar-wrap" aria-label="순매도 대비 순매수 비중">
+              <div class="diverging-half left">
+                <div class="diverging-fill sell" style="width: ${leftWidth}%"></div>
+              </div>
+              <div class="diverging-axis"></div>
+              <div class="diverging-half right">
+                <div class="diverging-fill buy" style="width: ${rightWidth}%"></div>
+              </div>
+            </div>
+            <p class="krx-inst-impact">${escapeHtml(r.impact || "")}</p>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  function renderKrxDeep(krx) {
+    const cardEl = document.getElementById("krx-deep-card");
+    if (!cardEl) return;
+
+    activeKrxData = krx || null;
+    const statusBadgeEl = document.getElementById("krx-status-badge");
+    const unavailableEl = document.getElementById("krx-unavailable-msg");
+    const contentEl = document.getElementById("krx-deep-content");
+    const extGuidesEl = document.getElementById("krx-extended-guides");
+
+    // 확장 지표(대차잔고·신용비율·개별 프로그램) 해설 카드는 항상 표시
+    const guides = (krx && krx.extended_guides) || [];
+    if (extGuidesEl) {
+      extGuidesEl.innerHTML = guides
+        .map(
+          (g) => `
+            <div class="krx-guide-card">
+              <div class="krx-guide-head">
+                <strong>${escapeHtml(g.name)}</strong>
+                <span class="krx-guide-source">${escapeHtml(g.source_note || "")}</span>
+              </div>
+              <p class="krx-guide-summary">${escapeHtml(g.summary || "")}</p>
+              <div class="krx-guide-impacts">
+                <p><span class="net-buy">긍정 신호:</span> ${escapeHtml(g.bull_impact || "")}</p>
+                <p><span class="net-sell">주의 신호:</span> ${escapeHtml(g.bear_impact || "")}</p>
+              </div>
+            </div>
+          `
+        )
+        .join("");
+    }
+
+    if (!krx || !krx.available) {
+      if (statusBadgeEl) statusBadgeEl.textContent = "KRX 미연동";
+      if (contentEl) contentEl.classList.add("hidden");
+      if (unavailableEl) {
+        unavailableEl.textContent = (krx && krx.reason) || "KRX 심층 수급 데이터를 불러오지 못했습니다.";
+        unavailableEl.classList.remove("hidden");
+      }
+      return;
+    }
+
+    if (unavailableEl) unavailableEl.classList.add("hidden");
+    if (contentEl) contentEl.classList.remove("hidden");
+    if (statusBadgeEl) {
+      statusBadgeEl.textContent = `KRX 실시간 · ${krx.market_name || "KRX"} (${krx.as_of || "-"})`;
+    }
+
+    // 1) KRX 종합 주가 영향 요약
+    const posEl = document.getElementById("krx-impact-positive");
+    const negEl = document.getElementById("krx-impact-negative");
+    const summary = krx.impact_summary || {};
+    if (posEl) {
+      posEl.innerHTML = (summary.positive || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+    }
+    if (negEl) {
+      negEl.innerHTML = (summary.negative || []).map((s) => `<li>${escapeHtml(s)}</li>`).join("");
+    }
+
+    // 2) 기관별 세부 매동 (활성 기간 기준)
+    const rows = activeKrxPeriod === "short" ? krx.institutional_short : krx.institutional_mid;
+    renderKrxInstitutionalList(rows);
+
+    // 3) 공매도 거래비중
+    const sv = krx.short_volume || {};
+    const svBadge = document.getElementById("krx-sv-badge");
+    const svRatio = document.getElementById("krx-sv-ratio");
+    const svMeta = document.getElementById("krx-sv-meta");
+    const svComment = document.getElementById("krx-sv-comment");
+    const svTbody = document.getElementById("krx-sv-table-body");
+
+    if (svBadge) {
+      svBadge.textContent = sv.label || "데이터 없음";
+      svBadge.className = `krx-level-badge ${sv.level || "neutral"}`;
+    }
+    if (svRatio) {
+      svRatio.textContent = sv.latest_ratio_pct != null ? `${sv.latest_ratio_pct.toFixed(2)}%` : "-";
+    }
+    if (svMeta) {
+      svMeta.textContent = sv.latest_date
+        ? `${sv.latest_date} · ${formatNumber(sv.latest_vol)}주 (5일 평균 ${sv.avg_5d_ratio_pct != null ? sv.avg_5d_ratio_pct.toFixed(2) + "%" : "-"})`
+        : "최근 공매도 거래 내역 없음";
+    }
+    if (svComment) svComment.textContent = sv.comment || "ETF이거나 최근 공매도 거래 내역이 집계되지 않은 종목입니다.";
+    if (svTbody) {
+      const svDaily = sv.daily || [];
+      svTbody.innerHTML = svDaily.length
+        ? svDaily
+            .map(
+              (d) => `
+                <tr>
+                  <td>${escapeHtml(d.date)}</td>
+                  <td>${escapeHtml(formatNumber(d.short_vol))}주</td>
+                  <td><strong>${d.short_ratio_pct != null ? escapeHtml(d.short_ratio_pct.toFixed(2) + "%") : "-"}</strong></td>
+                </tr>
+              `
+            )
+            .join("")
+        : `<tr><td colspan="3" style="text-align:center;">데이터 없음</td></tr>`;
+    }
+
+    // 4) 공매도 잔고비중 (T+2)
+    const sb = krx.short_balance || {};
+    const sbBadge = document.getElementById("krx-sb-badge");
+    const sbRatio = document.getElementById("krx-sb-ratio");
+    const sbMeta = document.getElementById("krx-sb-meta");
+    const sbComment = document.getElementById("krx-sb-comment");
+    const sbTbody = document.getElementById("krx-sb-table-body");
+
+    if (sbBadge) {
+      sbBadge.textContent = sb.label || "데이터 없음";
+      sbBadge.className = `krx-level-badge ${sb.level || "neutral"}`;
+    }
+    if (sbRatio) {
+      sbRatio.textContent = sb.balance_ratio_pct != null ? `${sb.balance_ratio_pct.toFixed(2)}%` : "-";
+    }
+    if (sbMeta) {
+      const chgTxt =
+        sb.qty_change_5d != null ? `5일 변화 ${formatSignedQty(sb.qty_change_5d)}주` : "";
+      sbMeta.textContent = sb.latest_date
+        ? `${sb.latest_date} · ${formatNumber(sb.balance_qty)}주 (${formatKoreanWon(sb.balance_amt)})${chgTxt ? " · " + chgTxt : ""}`
+        : "최근 공매도 잔고 내역 없음";
+    }
+    if (sbComment) sbComment.textContent = sb.comment || "최근 공매도 순보유잔고 내역이 집계되지 않은 종목입니다.";
+    if (sbTbody) {
+      const sbDaily = sb.daily || [];
+      sbTbody.innerHTML = sbDaily.length
+        ? sbDaily
+            .map(
+              (d) => `
+                <tr>
+                  <td>${escapeHtml(d.date)}</td>
+                  <td>${escapeHtml(formatNumber(d.balance_qty))}주</td>
+                  <td><strong>${d.balance_ratio_pct != null ? escapeHtml(d.balance_ratio_pct.toFixed(2) + "%") : "-"}</strong></td>
+                </tr>
+              `
+            )
+            .join("")
+        : `<tr><td colspan="3" style="text-align:center;">데이터 없음</td></tr>`;
+    }
+
+    // 5) 소속 시장 프로그램매매 순매수
+    const prog = krx.market_program || {};
+    const progTitle = document.getElementById("krx-prog-title");
+    const progBadge = document.getElementById("krx-prog-badge");
+    const progArb = document.getElementById("krx-prog-arb");
+    const progNonArb = document.getElementById("krx-prog-nonarb");
+    const progTotal = document.getElementById("krx-prog-total");
+    const progComment = document.getElementById("krx-prog-comment");
+
+    if (progTitle) {
+      const mkt = prog.market_name || krx.market_name || "시장";
+      progTitle.innerHTML = `${escapeHtml(mkt)} 프로그램매매 순매수 (차익 · 비차익) <span class="help-tip" data-tip="비차익 프로그램은 외국인·기관의 바스켓(패시브) 매매 비중이 높아 지수와 대형주 방향성에 직접 영향을 줍니다.">?</span>`;
+    }
+    if (progBadge) {
+      progBadge.textContent = prog.label || "-";
+      progBadge.className = `krx-level-badge ${prog.level || "neutral"}`;
+    }
+    const setSignedMetric = (el, val) => {
+      if (!el) return;
+      el.textContent = formatSignedKoreanWon(val);
+      el.className = `metric-value ${qtyClass(val || 0)}`;
+    };
+    setSignedMetric(progArb, prog.arbitrage_net_val);
+    setSignedMetric(progNonArb, prog.non_arbitrage_net_val);
+    setSignedMetric(progTotal, prog.total_net_val);
+    if (progComment) progComment.textContent = prog.comment || "프로그램매매 데이터를 불러오지 못했습니다.";
+  }
+
+  // KRX 기관 세부 수급 기간 전환 버튼
+  document.querySelectorAll(".krx-period-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeKrxPeriod = btn.dataset.krxPeriod || "mid";
+      document.querySelectorAll(".krx-period-btn").forEach((b) => {
+        b.classList.toggle("active", b === btn);
+      });
+      if (activeKrxData && activeKrxData.available) {
+        const rows = activeKrxPeriod === "short" ? activeKrxData.institutional_short : activeKrxData.institutional_mid;
+        renderKrxInstitutionalList(rows);
+      }
+    });
+  });
 
   function renderTechnical(data) {
     const summary = data.price_summary || {};
@@ -1067,10 +1545,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log(`[SEARCH]    데이터 수집 요청 시작 (${trimmed}, mode=${mode})`);
     showErrors([]);
-    showStatus(`[${trimmed}] 데이터를 수집하고 있습니다...`);
+    showStatus(`[${trimmed}] 실시간 시세·수급·공시 데이터를 수집하고 있습니다...`);
     analyzeBtn.disabled = true;
     chatFormEl.classList.add("hidden");
     if (quickQEl) quickQEl.classList.add("hidden");
+    if (welcomeHeroEl) welcomeHeroEl.classList.add("hidden");
+    panelEl.classList.add("hidden");
+    if (loadingSkeletonEl) loadingSkeletonEl.classList.remove("hidden");
 
     try {
       // 1단계: 원천 데이터 수집
@@ -1081,6 +1562,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const collected = await collectRes.json();
 
+      if (loadingSkeletonEl) loadingSkeletonEl.classList.add("hidden");
+
       if (collected.errors && collected.errors.length > 0) {
         console.error(`[ERROR]     오류 발생 (${collected.errors.join(" / ")})`);
         showErrors(collected.errors);
@@ -1089,6 +1572,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const valid = mode === "fundamental" ? Boolean(collected.name) : Boolean(collected.price_summary && collected.price_summary.latest_close != null);
       if (!collectRes.ok && !valid) {
         panelEl.classList.add("hidden");
+        if (welcomeHeroEl && !state[mode].data) welcomeHeroEl.classList.remove("hidden");
         return;
       }
 
@@ -1110,6 +1594,7 @@ document.addEventListener("DOMContentLoaded", () => {
       panelEl.classList.remove("hidden");
       if (mode === "fundamental") {
         drawForeignDonut((collected.snapshot || {}).foreign_rate);
+        drawFinancialsBarChart(collected.financials || []);
       } else {
         drawRsiDonut((collected.price_summary || {}).rsi_14);
         drawTechChart(activeChartSeries);
@@ -1144,9 +1629,11 @@ document.addEventListener("DOMContentLoaded", () => {
         initialBubble.innerHTML = renderMarkdownSafe("⚠️ AI 분석 답변을 생성하지 못했습니다. 위 오류 메시지를 확인해 주세요.");
       }
     } catch (err) {
+      if (loadingSkeletonEl) loadingSkeletonEl.classList.add("hidden");
       console.error(`[ERROR]     오류 발생 (${err.message})`);
       showErrors(["서버와 통신하는 중 오류가 발생했습니다."]);
     } finally {
+      if (loadingSkeletonEl) loadingSkeletonEl.classList.add("hidden");
       hideStatus();
       analyzeBtn.disabled = false;
     }
@@ -1219,6 +1706,56 @@ document.addEventListener("DOMContentLoaded", () => {
       codeInput.value = code;
       runAnalyze(code);
     });
+  });
+
+  // 웰컴 히어로: 대표 종목 카드 클릭 시 즉시 분석
+  document.querySelectorAll(".welcome-stock-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const code = card.dataset.code || "";
+      if (!code) return;
+      codeInput.value = code;
+      if (currentTab !== "fundamental" && currentTab !== "technical") {
+        switchTab("fundamental");
+      }
+      runAnalyze(code);
+    });
+  });
+
+  // 웰컴 히어로: 4대 기능 카드 클릭 시 해당 탭 이동 (필요 시 대표 종목 자동 분석)
+  document.querySelectorAll(".welcome-feature-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const targetTab = card.dataset.gotoTab || "fundamental";
+      const demoCode = card.dataset.demoCode || "";
+      switchTab(targetTab);
+      if (demoCode && (targetTab === "fundamental" || targetTab === "technical")) {
+        codeInput.value = demoCode;
+        runAnalyze(demoCode);
+      }
+    });
+  });
+
+  // 브랜드 로고 클릭 시 웰컴 화면으로 복귀
+  if (brandAreaEl) {
+    brandAreaEl.style.cursor = "pointer";
+    brandAreaEl.title = "홈 화면으로 이동";
+    brandAreaEl.addEventListener("click", () => {
+      currentTab = "fundamental";
+      tabBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === "fundamental"));
+      panelFundamental.classList.add("hidden");
+      panelTechnical.classList.add("hidden");
+      if (panelMacro) panelMacro.classList.add("hidden");
+      if (panelRebalance) panelRebalance.classList.add("hidden");
+      if (searchSectionEl) searchSectionEl.classList.remove("hidden");
+      if (welcomeHeroEl) welcomeHeroEl.classList.remove("hidden");
+      showErrors([]);
+    });
+  }
+
+  // 리사이즈 시 연간 실적 막대 차트 반응형 재렌더링
+  window.addEventListener("resize", () => {
+    if (currentTab === "fundamental" && state.fundamental.data && state.fundamental.data.financials) {
+      drawFinancialsBarChart(state.fundamental.data.financials);
+    }
   });
 
   fundChatForm.addEventListener("submit", (e) => {

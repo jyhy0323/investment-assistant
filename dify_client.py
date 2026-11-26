@@ -17,9 +17,45 @@ MODE_KEY_MAP = {
 }
 
 
+def _trim_data_for_prompt(stock_data: dict) -> dict:
+    """Dify 프롬프트 토큰 절약을 위해 정적 UI 해설 텍스트(extended_guides 등)를 제외한 핵심 수치만 추린다."""
+    if not isinstance(stock_data, dict) or not isinstance(stock_data.get("krx_deep"), dict):
+        return stock_data
+
+    trimmed = dict(stock_data)
+    kd = stock_data["krx_deep"]
+    if kd.get("available"):
+        trimmed["krx_deep"] = {
+            "market_name": kd.get("market_name"),
+            "institutional_short_10d": [
+                {"name": r["name"], "net_vol": r["net_vol"], "net_val": r["net_val"]}
+                for r in (kd.get("institutional_short") or [])
+            ],
+            "institutional_mid_30d": [
+                {"name": r["name"], "net_vol": r["net_vol"], "net_val": r["net_val"]}
+                for r in (kd.get("institutional_mid") or [])
+            ],
+            "short_volume": {
+                k: (kd.get("short_volume") or {}).get(k)
+                for k in ("latest_date", "latest_ratio_pct", "avg_5d_ratio_pct", "latest_vol", "label")
+            },
+            "short_balance": {
+                k: (kd.get("short_balance") or {}).get(k)
+                for k in ("latest_date", "balance_qty", "balance_ratio_pct", "qty_change_5d", "ratio_change_5d_pctp", "label")
+            },
+            "market_program": {
+                k: (kd.get("market_program") or {}).get(k)
+                for k in ("market_name", "arbitrage_net_val", "non_arbitrage_net_val", "total_net_val", "label")
+            },
+        }
+    else:
+        trimmed["krx_deep"] = {"available": False}
+    return trimmed
+
+
 def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") -> str:
     """수집된 JSON 데이터와 사용자 질문을 조합해 Dify 챗봇에 보낼 query 문자열을 만든다."""
-    data_json = json.dumps(stock_data, ensure_ascii=False, indent=2)
+    data_json = json.dumps(_trim_data_for_prompt(stock_data), ensure_ascii=False, indent=2)
 
     if user_question and user_question.strip():
         return f"{user_question.strip()}\n\n[참고 데이터]\n{data_json}"
@@ -36,22 +72,25 @@ def build_analysis_prompt(mode: str, stock_data: dict, user_question: str = "") 
             )
         if stock_data.get("asset_type") == "etf":
             return (
-                "아래는 네이버 금융(ETF 시세·기초지수·운용사·총보수·NAV·분배율·20일 외인/기관/개인 수급 동향)과 Serper 뉴스에서 수집한 ETF 데이터입니다. "
+                "아래는 네이버 금융(ETF 시세·기초지수·운용사·총보수·NAV·분배율·20일 외인/기관/개인 수급 동향), "
+                "KRX 세부 수급·프로그램매매 데이터와 Serper 뉴스에서 수집한 ETF 데이터입니다. "
                 "주식 초보자(주린이)도 이해하기 쉽게 다음 항목을 정리해 주세요:\n"
                 "1) 이 ETF가 무엇에 투자하는 상품인지 (기초지수, 운용사, 순자산 규모, 총보수/수수료 평가)\n"
                 "2) NAV(순자산가치) 대비 괴리율 및 분배율(배당) 특징\n"
-                "3) 개인·외국인·기관의 단기(5일) 및 중기(20일) 수급 동향 해석\n"
+                "3) 개인·외국인·기관(연기금·금융투자 등) 및 시장 프로그램 수급이 주가에 주는 영향 해석\n"
                 "4) 주린이 관점에서 [장점/긍정 요인]과 [주의할 리스크(환율·변동성 등)] 정리\n\n"
                 f"{data_json}"
             )
         return (
-            "아래는 네이버 금융(시세·밸류에이션·실적·20일 외인/기관/개인 수급 동향), Open DART 최근 공식 공시, Serper 뉴스에서 수집한 종목 데이터입니다. "
+            "아래는 네이버 금융(시세·밸류에이션·실적·20일 외인/기관/개인 수급 동향), "
+            "KRX 심층 수급(기관별 세부 매동: 연기금·투신·금융투자·사모·보험, 공매도 거래비중·공매도 잔고비중, 시장 프로그램 차익/비차익 순매수), "
+            "Open DART 최근 공식 공시, Serper 뉴스에서 수집한 종목 데이터입니다. "
             "주식 초보자(주린이)도 이해하기 쉽게 다음 항목을 정리해 주세요:\n"
             "1) 핵심 시세·밸류에이션(PER/PBR) 및 실적(확정/추정치 구분)\n"
-            "2) 개인·외국인·기관의 단기(5일) 및 중기(20일) 수급 동향과 외국인 지분율 변화 해석\n"
-            "3) DART 최근 공식 공시 중 주주가 주목해야 할 호재(자사주·수주·배당) 또는 주의(유상증자·CB 등) 공시 여부\n"
-            "4) 단기·중장기 관점에서 주린이가 볼 때 [긍정적인 점]과 [부정적/주의할 점] 비교 정리\n"
-            "5) 최신 뉴스 핵심 이슈 요약 (매수/매도 단정 대신 객관적 근거 중심)\n\n"
+            "2) 외인·기관 수급 및 기관별 세부 매동(연기금·투신 같은 장기 자금 vs 금융투자·사모 같은 단기 자금)이 주가에 미치는 영향\n"
+            "3) 공매도 거래비중·공매도 잔고비중 및 시장 프로그램 수급이 현재 주가에 주는 압력(하방 압력 vs 숏커버링/우호적 수급)\n"
+            "4) DART 최근 공식 공시 중 주주가 주목해야 할 호재(자사주·수주·배당) 또는 주의(유상증자·CB 등) 공시 여부\n"
+            "5) 단기·중장기 관점에서 [긍정적인 점]과 [주의할 점] 및 최신 뉴스 핵심 요약 (매수/매도 단정 대신 객관적 근거 중심)\n\n"
             f"{data_json}"
         )
 

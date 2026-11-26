@@ -5,6 +5,7 @@ import time
 import requests
 from dotenv import load_dotenv
 from dart_client import fetch_dart_disclosures
+from krx_client import fetch_krx_deep_supply
 
 load_dotenv()
 
@@ -118,6 +119,7 @@ def fetch_basic_info(code: str) -> dict:
         "etf_info": None,
         "financials": [],
         "disclosures": [],
+        "krx_deep": None,
         "news": [],
         "errors": [],
     }
@@ -528,6 +530,7 @@ def fetch_us_stock(ticker: str) -> dict:
         "financials": [],
         "disclosures": [],
         "supply_demand": {},
+        "krx_deep": None,
         "news": [],
         "errors": [],
     }
@@ -593,6 +596,10 @@ def collect_all(code: str) -> dict:
             result["errors"].append(dart_err)
 
     result = fetch_supply_demand(result["code"], result)
+    krx_deep, krx_err = fetch_krx_deep_supply(result["code"])
+    result["krx_deep"] = krx_deep
+    if krx_err:
+        result["errors"].append(krx_err)
     result = fetch_serper_news(result["name"], result)
     return result
 

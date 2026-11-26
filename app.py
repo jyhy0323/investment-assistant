@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from collector import collect_all, fetch_basic_info
 from technical import collect_technical
 from dify_client import ask_dify, build_analysis_prompt
+from krx_client import is_krx_configured
 from macro import collect_macro_overview
 
 # .env 파일에서 환경변수 로드
@@ -48,10 +49,12 @@ def health_check():
     dify_fund_configured = bool(dify_fund_key and not dify_fund_key.startswith("여기에"))
     dify_tech_configured = bool(dify_tech_key and not dify_tech_key.startswith("여기에"))
     dart_configured = bool(dart_key and not dart_key.startswith("여기에"))
+    krx_configured = is_krx_configured()
 
     logger.info(
         f"[HEALTH] 상태 점검 요청 - Serper: {serper_configured}, Gemini: {gemini_configured}, "
-        f"Dify(종목분석): {dify_fund_configured}, Dify(지표해석): {dify_tech_configured}, DART: {dart_configured}"
+        f"Dify(종목분석): {dify_fund_configured}, Dify(지표해석): {dify_tech_configured}, "
+        f"DART: {dart_configured}, KRX: {krx_configured}"
     )
 
     return jsonify({
@@ -62,7 +65,8 @@ def health_check():
             "gemini_api": "configured" if gemini_configured else "missing",
             "dify_fundamental_api": "configured" if dify_fund_configured else "missing",
             "dify_technical_api": "configured" if dify_tech_configured else "missing",
-            "dart_api": "configured" if dart_configured else "missing"
+            "dart_api": "configured" if dart_configured else "missing",
+            "krx_account": "configured" if krx_configured else "missing"
         }
     }), 200
 

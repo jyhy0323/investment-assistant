@@ -1994,3 +1994,805 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* ================= KRX 심층 수급 · 공매도 · 프로그램 분석 ================= */
+.krx-notice {
+  background-color: var(--toss-amber-soft);
+  color: #92400e;
+  border-radius: var(--toss-radius-md);
+  padding: 13px 16px;
+  font-size: 0.87rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+[data-theme="dark"] .krx-notice {
+  color: #fde68a;
+}
+
+.krx-subsection {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--toss-divider);
+}
+
+.krx-sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.krx-sub-header h3 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--toss-text);
+}
+
+.krx-sub-desc {
+  font-size: 0.8rem;
+  color: var(--toss-text-muted);
+  margin-top: 2px;
+}
+
+.krx-period-toggle {
+  display: inline-flex;
+  gap: 4px;
+  background-color: var(--toss-bg);
+  padding: 3px;
+  border-radius: 10px;
+}
+
+.krx-period-btn {
+  padding: 5px 11px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--toss-text-sub);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.krx-period-btn.active {
+  background-color: var(--toss-surface);
+  color: var(--toss-text);
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(25, 31, 40, 0.08);
+}
+
+.krx-inst-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.krx-inst-item {
+  background-color: var(--toss-surface-sub);
+  border-radius: var(--toss-radius-md);
+  padding: 12px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.krx-inst-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.krx-inst-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.krx-inst-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--toss-text);
+}
+
+.krx-role-tag {
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--toss-blue-soft);
+  color: var(--toss-blue);
+}
+
+.krx-inst-nums {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.krx-inst-vol {
+  font-size: 0.77rem;
+  color: var(--toss-text-muted);
+}
+
+.krx-inst-impact {
+  font-size: 0.78rem;
+  color: var(--toss-text-sub);
+  line-height: 1.45;
+}
+
+.krx-short-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.krx-metric-card {
+  background-color: var(--toss-surface-sub);
+  border-radius: var(--toss-radius-md);
+  padding: 15px 17px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.krx-metric-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.krx-metric-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--toss-text-sub);
+}
+
+.krx-metric-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.krx-metric-main strong {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--toss-text);
+  letter-spacing: -0.02em;
+}
+
+.krx-metric-sub {
+  font-size: 0.78rem;
+  color: var(--toss-text-muted);
+}
+
+.krx-impact-text {
+  font-size: 0.82rem;
+  color: var(--toss-text-sub);
+  line-height: 1.55;
+}
+
+.krx-level-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.krx-level-badge.low,
+.krx-level-badge.positive {
+  background-color: var(--toss-green-soft);
+  color: #027a48;
+}
+
+.krx-level-badge.medium {
+  background-color: var(--toss-amber-soft);
+  color: #b45309;
+}
+
+.krx-level-badge.high,
+.krx-level-badge.negative {
+  background-color: var(--toss-red-soft);
+  color: var(--toss-red);
+}
+
+.krx-level-badge.neutral {
+  background-color: var(--toss-bg);
+  color: var(--toss-text-sub);
+}
+
+[data-theme="dark"] .krx-level-badge.low,
+[data-theme="dark"] .krx-level-badge.positive {
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .krx-level-badge.medium {
+  color: #fde68a;
+}
+
+[data-theme="dark"] .krx-level-badge.high,
+[data-theme="dark"] .krx-level-badge.negative {
+  color: #fca5a5;
+}
+
+.krx-short-tables-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.krx-mini-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--toss-text-sub);
+  margin-bottom: 6px;
+}
+
+.krx-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.krx-guide-card {
+  background-color: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.krx-guide-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.krx-guide-head strong {
+  font-size: 0.86rem;
+  color: var(--toss-text);
+}
+
+.krx-guide-source {
+  font-size: 0.72rem;
+  color: var(--toss-blue);
+  font-weight: 600;
+}
+
+.krx-guide-summary {
+  font-size: 0.8rem;
+  color: var(--toss-text-sub);
+  line-height: 1.45;
+}
+
+.krx-guide-impacts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--toss-border);
+  font-size: 0.77rem;
+  color: var(--toss-text-sub);
+  line-height: 1.45;
+}
+
+.krx-empty-note {
+  font-size: 0.84rem;
+  color: var(--toss-text-muted);
+  text-align: center;
+  padding: 12px;
+}
+
+@media (max-width: 900px) {
+  .krx-guide-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .krx-short-grid,
+  .krx-short-tables-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ================= Premium Fintech Visual Polish (Toss · Robinhood 감성) ================= */
+body {
+  background-image:
+    radial-gradient(circle at 12% 0%, rgba(49, 130, 246, 0.08) 0%, transparent 42%),
+    radial-gradient(circle at 88% 4%, rgba(3, 178, 108, 0.06) 0%, transparent 38%);
+  background-attachment: fixed;
+}
+
+[data-theme="dark"] body {
+  background-image:
+    radial-gradient(circle at 14% 0%, rgba(69, 147, 252, 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 86% 6%, rgba(34, 209, 136, 0.09) 0%, transparent 40%);
+}
+
+.toss-topbar {
+  box-shadow: 0 1px 0 var(--toss-border), 0 6px 24px rgba(15, 23, 42, 0.03);
+}
+
+.card {
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.035), 0 12px 32px rgba(15, 23, 42, 0.025);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.tab-panel:not(.hidden) {
+  animation: fadeSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 웰컴 히어로 & 런치패드 */
+.welcome-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.welcome-hero-banner {
+  background: linear-gradient(135deg, var(--toss-surface) 0%, rgba(49, 130, 246, 0.05) 100%);
+  border: 1px solid var(--toss-border);
+  border-radius: 26px;
+  padding: 34px 32px;
+  box-shadow: 0 8px 32px rgba(49, 130, 246, 0.06), 0 1px 4px rgba(15, 23, 42, 0.03);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+}
+
+[data-theme="dark"] .welcome-hero-banner {
+  background: linear-gradient(135deg, #202027 0%, rgba(69, 147, 252, 0.12) 100%);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.welcome-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  background-color: var(--toss-blue-soft);
+  color: var(--toss-blue);
+  font-size: 0.78rem;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.live-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--toss-green);
+  box-shadow: 0 0 0 0 rgba(3, 178, 108, 0.55);
+  animation: pulseRing 2s infinite;
+}
+
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(3, 178, 108, 0.55); }
+  70% { box-shadow: 0 0 0 8px rgba(3, 178, 108, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(3, 178, 108, 0); }
+}
+
+.welcome-copy h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.28;
+  letter-spacing: -0.035em;
+  color: var(--toss-text);
+  margin-bottom: 12px;
+}
+
+.gradient-text {
+  background: linear-gradient(95deg, #3182f6 0%, #03b26c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.welcome-desc {
+  font-size: 0.94rem;
+  color: var(--toss-text-sub);
+  line-height: 1.65;
+  max-width: 480px;
+}
+
+.welcome-tickers-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--toss-text-muted);
+  margin-bottom: 10px;
+  letter-spacing: 0.01em;
+}
+
+.welcome-ticker-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.welcome-stock-card {
+  text-align: left;
+  font-family: inherit;
+  background-color: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.welcome-stock-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--toss-blue);
+  box-shadow: 0 10px 24px rgba(49, 130, 246, 0.12);
+}
+
+.wsc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.wsc-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.wsc-tag.kr { background-color: var(--toss-blue-soft); color: var(--toss-blue); }
+.wsc-tag.etf { background-color: var(--toss-green-soft); color: var(--toss-green); }
+.wsc-tag.us { background-color: rgba(139, 92, 246, 0.14); color: #7c3aed; }
+[data-theme="dark"] .wsc-tag.us { color: #c4b5fd; }
+
+.wsc-code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--toss-text-muted);
+}
+
+.welcome-stock-card strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--toss-text);
+}
+
+.wsc-sub {
+  font-size: 0.76rem;
+  color: var(--toss-text-sub);
+}
+
+.welcome-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.welcome-feature-card {
+  text-align: left;
+  font-family: inherit;
+  background-color: var(--toss-surface);
+  border: 1px solid var(--toss-border);
+  border-radius: 20px;
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.welcome-feature-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--toss-blue);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.wf-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+
+.wf-icon.blue { background-color: var(--toss-blue-soft); color: var(--toss-blue); }
+.wf-icon.purple { background-color: rgba(139, 92, 246, 0.14); color: #7c3aed; }
+.wf-icon.amber { background-color: var(--toss-amber-soft); color: #d97706; }
+.wf-icon.green { background-color: var(--toss-green-soft); color: var(--toss-green); }
+[data-theme="dark"] .wf-icon.purple { color: #c4b5fd; }
+[data-theme="dark"] .wf-icon.amber { color: #fbbf24; }
+
+.welcome-feature-card h3 {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--toss-text);
+}
+
+.welcome-feature-card p {
+  font-size: 0.82rem;
+  color: var(--toss-text-sub);
+  line-height: 1.5;
+}
+
+/* 종목 상단 히어로 카드 & 4대 핵심 신호등 요약 바 */
+.hero-stock-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-stock-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--toss-blue), var(--toss-green));
+  opacity: 0.85;
+}
+
+.hero-stock-card.trend-up::before {
+  background: linear-gradient(90deg, #f04452, #ff8a65);
+}
+
+.hero-stock-card.trend-down::before {
+  background: linear-gradient(90deg, #3182f6, #60a5fa);
+}
+
+.exec-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.exec-chip {
+  border-radius: 14px;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid transparent;
+}
+
+.exec-chip-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.exec-chip-val {
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.exec-chip.tone-positive {
+  background-color: var(--toss-green-soft);
+  border-color: rgba(3, 178, 108, 0.22);
+  color: #027a48;
+}
+
+.exec-chip.tone-negative {
+  background-color: var(--toss-red-soft);
+  border-color: rgba(240, 68, 82, 0.22);
+  color: #c62828;
+}
+
+.exec-chip.tone-warning {
+  background-color: var(--toss-amber-soft);
+  border-color: rgba(245, 159, 0, 0.24);
+  color: #b45309;
+}
+
+.exec-chip.tone-info {
+  background-color: var(--toss-blue-soft);
+  border-color: rgba(49, 130, 246, 0.22);
+  color: #1b64da;
+}
+
+.exec-chip.tone-neutral {
+  background-color: var(--toss-surface-sub);
+  border-color: var(--toss-border);
+  color: var(--toss-text-sub);
+}
+
+[data-theme="dark"] .exec-chip.tone-positive { color: #6ee7b7; }
+[data-theme="dark"] .exec-chip.tone-negative { color: #fca5a5; }
+[data-theme="dark"] .exec-chip.tone-warning { color: #fde68a; }
+[data-theme="dark"] .exec-chip.tone-info { color: #93c5fd; }
+
+/* 기관별 세부 수급 양방향 발산 막대 차트 (좌: 순매도 / 우: 순매수) */
+.diverging-bar-wrap {
+  display: flex;
+  align-items: center;
+  height: 10px;
+  background-color: var(--toss-bg);
+  border-radius: 999px;
+  overflow: hidden;
+  padding: 1px 0;
+}
+
+.diverging-half {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.diverging-half.left {
+  justify-content: flex-end;
+}
+
+.diverging-half.right {
+  justify-content: flex-start;
+}
+
+.diverging-axis {
+  width: 2px;
+  height: 100%;
+  background-color: var(--toss-text-muted);
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.diverging-fill {
+  height: 100%;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.diverging-fill.sell {
+  background: linear-gradient(270deg, #3182f6, #60a5fa);
+  border-radius: 999px 0 0 999px;
+}
+
+.diverging-fill.buy {
+  background: linear-gradient(90deg, #f04452, #ff7b86);
+  border-radius: 0 999px 999px 0;
+}
+
+/* 연간 실적 그룹 막대 차트 */
+.fin-chart-wrap {
+  background-color: var(--toss-surface-sub);
+  border-radius: var(--toss-radius-md);
+  padding: 14px 16px 10px;
+  margin-bottom: 16px;
+}
+
+.fin-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.78rem;
+  color: var(--toss-text-sub);
+  margin-bottom: 6px;
+}
+
+.fin-canvas-box {
+  width: 100%;
+  height: 190px;
+}
+
+#financials-bar-chart {
+  width: 100%;
+  height: 190px;
+  display: block;
+}
+
+/* 스켈레톤 로딩 UI */
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skel-row-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.skel-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.skel-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.skel-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+.skel-bar,
+.skel-box {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--toss-bg) 25%, var(--toss-border) 50%, var(--toss-bg) 75%);
+  background-size: 220% 100%;
+  animation: skelShimmer 1.35s ease-in-out infinite;
+}
+
+.w-30 { width: 30%; }
+.w-35 { width: 35%; }
+.w-40 { width: 40%; }
+.w-50 { width: 50%; }
+.w-65 { width: 65%; }
+.w-80 { width: 80%; }
+.h-16 { height: 16px; }
+.h-20 { height: 20px; }
+.h-28 { height: 28px; }
+.h-64 { height: 64px; }
+.h-76 { height: 76px; }
+.h-110 { height: 110px; }
+.h-180 { height: 180px; }
+
+@keyframes skelShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 세련된 사이드바 스크롤바 */
+.sidebar-chat::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-chat::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-chat::-webkit-scrollbar-thumb {
+  background-color: var(--toss-border);
+  border-radius: 999px;
+}
+
+@media (max-width: 960px) {
+  .welcome-hero-banner {
+    grid-template-columns: 1fr;
+    padding: 26px 22px;
+  }
+  .welcome-feature-grid,
+  .exec-summary-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .welcome-copy h1 {
+    font-size: 1.55rem;
+  }
+  .welcome-ticker-grid,
+  .welcome-feature-grid,
+  .exec-summary-strip,
+  .skel-grid-4,
+  .skel-grid-3,
+  .skel-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

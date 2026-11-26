@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI 투자증권 — 종목·차트·포트폴리오 분석</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='wts2') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='wts4') }}" />
 </head>
 <body>
   <!-- 상단 고정 WTS 네비게이션 바 -->
@@ -69,13 +69,138 @@
     <div id="status-message" class="status-message hidden"></div>
     <div id="error-box" class="error-box hidden"></div>
 
+    <!-- 로딩 스켈레톤 UI -->
+    <section id="loading-skeleton" class="skeleton-shell hidden" aria-hidden="true">
+      <div class="wts-grid">
+        <div class="wts-main">
+          <div class="card skeleton-card">
+            <div class="skel-row-between">
+              <div class="skel-bar w-40 h-28"></div>
+              <div class="skel-bar w-30 h-28"></div>
+            </div>
+            <div class="skel-grid-4">
+              <div class="skel-box h-64"></div>
+              <div class="skel-box h-64"></div>
+              <div class="skel-box h-64"></div>
+              <div class="skel-box h-64"></div>
+            </div>
+            <div class="skel-grid-3">
+              <div class="skel-box h-76"></div>
+              <div class="skel-box h-76"></div>
+              <div class="skel-box h-76"></div>
+            </div>
+          </div>
+          <div class="card skeleton-card">
+            <div class="skel-bar w-35 h-20"></div>
+            <div class="skel-grid-2">
+              <div class="skel-box h-110"></div>
+              <div class="skel-box h-110"></div>
+            </div>
+          </div>
+        </div>
+        <aside class="wts-sidebar">
+          <div class="card skeleton-card">
+            <div class="skel-bar w-50 h-20"></div>
+            <div class="skel-box h-180"></div>
+            <div class="skel-bar w-80 h-16"></div>
+            <div class="skel-bar w-65 h-16"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 초기 웰컴 히어로 & 런치패드 (종목 조회 전 빈 화면 대체) -->
+    <section id="welcome-hero" class="welcome-hero">
+      <div class="welcome-hero-banner">
+        <div class="welcome-copy">
+          <span class="welcome-pill"><i class="live-pulse"></i>KRX · DART · 글로벌 거시 · AI 실시간 연동</span>
+          <h1>숫자와 수급으로 읽는<br /><span class="gradient-text">실전 AI 투자 어시스턴트</span></h1>
+          <p class="welcome-desc">
+            국내·미국 종목의 재무 실적, KRX 기관별 세부 매동, 공매도 비중·잔고, 차트 지지·저항선, 거시 리스크까지 한 화면에서 입체적으로 분석하고 AI 애널리스트와 대화해 보세요.
+          </p>
+        </div>
+
+        <div class="welcome-tickers">
+          <div class="welcome-tickers-title">대표 종목 원클릭 분석</div>
+          <div class="welcome-ticker-grid">
+            <button type="button" class="welcome-stock-card" data-code="000660">
+              <div class="wsc-top">
+                <span class="wsc-tag kr">KOSPI</span>
+                <span class="wsc-code">000660</span>
+              </div>
+              <strong>SK하이닉스</strong>
+              <span class="wsc-sub">KRX 기관·공매도 · AI 반도체</span>
+            </button>
+            <button type="button" class="welcome-stock-card" data-code="005930">
+              <div class="wsc-top">
+                <span class="wsc-tag kr">KOSPI</span>
+                <span class="wsc-code">005930</span>
+              </div>
+              <strong>삼성전자</strong>
+              <span class="wsc-sub">외국인 지분율 · 시총 1위</span>
+            </button>
+            <button type="button" class="welcome-stock-card" data-code="360750">
+              <div class="wsc-top">
+                <span class="wsc-tag etf">국내 ETF</span>
+                <span class="wsc-code">360750</span>
+              </div>
+              <strong>TIGER 미국S&amp;P500</strong>
+              <span class="wsc-sub">총보수 · NAV · 분배율 분석</span>
+            </button>
+            <button type="button" class="welcome-stock-card" data-code="NVDA">
+              <div class="wsc-top">
+                <span class="wsc-tag us">NASDAQ</span>
+                <span class="wsc-code">NVDA</span>
+              </div>
+              <strong>엔비디아</strong>
+              <span class="wsc-sub">미국 빅테크 · 달러 시세</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="welcome-feature-grid">
+        <button type="button" class="welcome-feature-card" data-goto-tab="fundamental" data-demo-code="000660">
+          <span class="wf-icon blue">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 16v-5"/><path d="M12 16V8"/><path d="M17 16v-3"/></svg>
+          </span>
+          <h3>종목 · KRX 심층수급</h3>
+          <p>연기금·투신·금융투자 세부 매동, 공매도 비중·잔고, DART 공시 및 AI 브리핑</p>
+        </button>
+
+        <button type="button" class="welcome-feature-card" data-goto-tab="technical" data-demo-code="000660">
+          <span class="wf-icon purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          </span>
+          <h3>차트 · 지지·저항선</h3>
+          <p>60일 이평선·볼린저밴드·RSI 과열 게이지와 돌파/이탈 시나리오 자동 계산</p>
+        </button>
+
+        <button type="button" class="welcome-feature-card" data-goto-tab="macro">
+          <span class="wf-icon amber">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </span>
+          <h3>글로벌 시장 · 거시</h3>
+          <p>VIX 공포지수·미 국채금리·환율·유가·금 7대 지표와 시장 위험도 신호등</p>
+        </button>
+
+        <button type="button" class="welcome-feature-card" data-goto-tab="rebalance">
+          <span class="wf-icon green">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+          </span>
+          <h3>포트폴리오 리밸런싱</h3>
+          <p>실시간 시세 반영 목표 비중 비교와 매수·매도 권장 수량 자동 계산</p>
+        </button>
+      </div>
+    </section>
+
     <!-- [탭 1] 종목분석 패널 (2컬럼 WTS 레이아웃) -->
     <main id="panel-fundamental" class="tab-panel hidden">
       <div class="wts-grid">
         <!-- 좌측 메인 데이터 컬럼 -->
         <div class="wts-main">
           <!-- 스냅샷 카드 -->
-          <section class="card">
+          <section class="card hero-stock-card" id="hero-stock-card">
             <div class="stock-header">
               <div class="stock-title-group">
                 <h2 id="stock-name">-</h2>
@@ -86,6 +211,9 @@
                 <span id="change-rate" class="change-rate">-</span>
               </div>
             </div>
+
+            <!-- 한눈에 보는 4대 핵심 투자 신호등 요약 바 -->
+            <div id="exec-summary-strip" class="exec-summary-strip hidden"></div>
 
             <div id="stock-metrics-grid" class="snapshot-grid">
               <div class="metric-item">
@@ -152,8 +280,6 @@
               <h2>투자자별 수급 동향</h2>
               <div class="header-actions-inline">
                 <span id="fr-change-badge" class="badge">20일 외인지분 변화: -</span>
-                <a id="short-trade-link" class="short-link-btn" href="https://finance.naver.com/item/short_trade.naver?code=000660" target="_blank" rel="noopener noreferrer">공매도 현황 ↗</a>
-                <span class="help-tip" data-tip="공매도는 주가 하락에 베팅하는 거래입니다. 아래 '공매도 읽는 법'을 펼쳐 확인 기준을 보세요.">?</span>
               </div>
             </div>
 
@@ -193,16 +319,142 @@
                 <tbody id="supply-daily-body"></tbody>
               </table>
             </div>
+          </section>
 
-            <details class="short-guide">
-              <summary>공매도 현황 페이지에서 어떤 신호를 보면 될까요?</summary>
+          <!-- KRX 심층 수급 (기관별 세부 매동 · 공매도 비중/잔고 · 프로그램 · 확장 지표 해설) -->
+          <section class="card" id="krx-deep-card">
+            <div class="section-title-row">
+              <h2>KRX 심층 수급 · 공매도 · 프로그램 분석</h2>
+              <span id="krx-status-badge" class="badge">KRX 연동</span>
+            </div>
+
+            <div id="krx-unavailable-msg" class="krx-notice hidden"></div>
+
+            <div id="krx-deep-content">
+              <!-- KRX 종합 주가 영향 신호등 -->
+              <div class="signal-grid">
+                <div class="signal-box positive">
+                  <h3><i class="status-dot green"></i>KRX 수급·공매도 긍정 요인</h3>
+                  <ul id="krx-impact-positive"></ul>
+                </div>
+                <div class="signal-box negative">
+                  <h3><i class="status-dot red"></i>KRX 수급·공매도 주의 요인</h3>
+                  <ul id="krx-impact-negative"></ul>
+                </div>
+              </div>
+
+              <!-- 1. 기관별 세부 매매동향 -->
+              <div class="krx-subsection">
+                <div class="krx-sub-header">
+                  <div>
+                    <h3>기관별 세부 매매동향 <span class="help-tip" data-tip="같은 '기관'이라도 연기금·투신은 중장기 자금, 금융투자·사모는 단기/차익 자금 성향이 강해 주가에 미치는 영향이 다릅니다.">?</span></h3>
+                    <p class="krx-sub-desc">연기금·투신(장기) vs 금융투자·사모(단기) 순매수 금액 기준</p>
+                  </div>
+                  <div class="krx-period-toggle" role="group" aria-label="기관 세부 수급 기간">
+                    <button type="button" class="krx-period-btn active" data-krx-period="mid">최근 1개월</button>
+                    <button type="button" class="krx-period-btn" data-krx-period="short">최근 10일</button>
+                  </div>
+                </div>
+                <div id="krx-inst-list" class="krx-inst-list"></div>
+              </div>
+
+              <!-- 2. 공매도 거래비중 & 공매도 잔고비중 -->
+              <div class="krx-subsection">
+                <div class="krx-sub-header">
+                  <h3>공매도 거래비중 · 순보유잔고 <span class="help-tip" data-tip="공매도 거래비중은 단기 하락 베팅 강도를, 공매도 잔고비중(T+2 공시)은 중기 매도 압력과 숏커버링 가능성을 보여줍니다.">?</span></h3>
+                  <a id="short-trade-link" class="short-link-btn" href="https://finance.naver.com/item/short_trade.naver?code=000660" target="_blank" rel="noopener noreferrer">네이버 공매도 원문 ↗</a>
+                </div>
+                <div class="krx-short-grid">
+                  <div class="krx-metric-card">
+                    <div class="krx-metric-top">
+                      <span class="krx-metric-title">공매도 거래비중</span>
+                      <span id="krx-sv-badge" class="krx-level-badge neutral">-</span>
+                    </div>
+                    <div class="krx-metric-main">
+                      <strong id="krx-sv-ratio">-</strong>
+                      <span id="krx-sv-meta" class="krx-metric-sub">-</span>
+                    </div>
+                    <p id="krx-sv-comment" class="krx-impact-text">-</p>
+                  </div>
+
+                  <div class="krx-metric-card">
+                    <div class="krx-metric-top">
+                      <span class="krx-metric-title">공매도 잔고비중 (T+2)</span>
+                      <span id="krx-sb-badge" class="krx-level-badge neutral">-</span>
+                    </div>
+                    <div class="krx-metric-main">
+                      <strong id="krx-sb-ratio">-</strong>
+                      <span id="krx-sb-meta" class="krx-metric-sub">-</span>
+                    </div>
+                    <p id="krx-sb-comment" class="krx-impact-text">-</p>
+                  </div>
+                </div>
+
+                <details class="short-guide" style="margin-top: 10px;">
+                  <summary>최근 5거래일 공매도 거래비중 · 잔고 추이 표 보기</summary>
+                  <div class="short-guide-body">
+                    <div class="krx-short-tables-grid">
+                      <div class="table-wrapper">
+                        <h4 class="krx-mini-title">일별 공매도 거래비중</h4>
+                        <table class="financials-table">
+                          <thead>
+                            <tr>
+                              <th>날짜</th>
+                              <th>공매도량</th>
+                              <th>비중(%)</th>
+                            </tr>
+                          </thead>
+                          <tbody id="krx-sv-table-body"></tbody>
+                        </table>
+                      </div>
+                      <div class="table-wrapper">
+                        <h4 class="krx-mini-title">일별 공매도 잔고 (T+2)</h4>
+                        <table class="financials-table">
+                          <thead>
+                            <tr>
+                              <th>기준일</th>
+                              <th>잔고수량</th>
+                              <th>비중(%)</th>
+                            </tr>
+                          </thead>
+                          <tbody id="krx-sb-table-body"></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+              </div>
+
+              <!-- 3. 소속 시장 프로그램매매 순매수 -->
+              <div class="krx-subsection">
+                <div class="krx-sub-header">
+                  <h3 id="krx-prog-title">시장 프로그램매매 순매수 (차익 · 비차익) <span class="help-tip" data-tip="비차익 프로그램은 외국인·기관의 바스켓(패시브) 매매 비중이 높아 지수와 대형주 방향성에 직접 영향을 줍니다.">?</span></h3>
+                  <span id="krx-prog-badge" class="krx-level-badge neutral">-</span>
+                </div>
+                <div class="snapshot-grid" style="margin-bottom: 10px;">
+                  <div class="metric-item">
+                    <span class="metric-label">차익 순매수 (최근 1주)</span>
+                    <strong id="krx-prog-arb" class="metric-value">-</strong>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">비차익 순매수 (최근 1주)</span>
+                    <strong id="krx-prog-nonarb" class="metric-value">-</strong>
+                  </div>
+                  <div class="metric-item">
+                    <span class="metric-label">프로그램 합계</span>
+                    <strong id="krx-prog-total" class="metric-value">-</strong>
+                  </div>
+                </div>
+                <p id="krx-prog-comment" class="krx-impact-text">-</p>
+              </div>
+            </div>
+
+            <!-- 4. 대차잔고 · 신용비율 · 개별 프로그램매매 주가 영향 해설 가이드 -->
+            <details class="short-guide" style="margin-top: 14px;" open>
+              <summary>추가 지표 읽는 법 가이드 — 대차잔고 · 신용비율 · 개별 프로그램 (해설 전용)</summary>
               <div class="short-guide-body">
-                <p class="short-guide-intro"><strong>공매도</strong>는 주가 하락을 예상해 주식을 빌려 먼저 파는 거래입니다. 위 <strong>공매도 현황 ↗</strong>에서 아래 3가지를 확인해 보세요.</p>
-                <ul class="short-guide-list">
-                  <li><strong class="net-sell">단기 하방 압력:</strong> 하루 공매도 거래비중이 <strong>10~15% 이상</strong>으로 급증할 때</li>
-                  <li><strong class="net-sell">중기 부담 누적:</strong> 공매도 잔고 비중이 <strong>3% 이상</strong> 계속 늘어날 때</li>
-                  <li><strong class="net-buy">반등 신호 (숏커버링):</strong> 많던 공매도 잔고가 <strong>빠르게 줄어들기 시작</strong>할 때</li>
-                </ul>
+                <p class="short-guide-intro">아래 3가지 개별종목 수치는 KRX 공개 데이터에 포함되지 않아 <strong>증권사 MTS·예탁결제원(SEIBro)</strong>에서 확인하는 보조 지표입니다. 함께 볼 때 주가에 미치는 영향을 정리해 두었습니다.</p>
+                <div id="krx-extended-guides" class="krx-guide-grid"></div>
               </div>
             </details>
           </section>
@@ -212,6 +464,16 @@
             <div class="section-title-row">
               <h2>연간 실적 추이</h2>
               <span class="legend-note"><strong>(E) 추정치</strong>는 증권사 컨센서스 예상치입니다</span>
+            </div>
+            <div id="financials-chart-wrap" class="fin-chart-wrap hidden">
+              <div class="fin-chart-legend">
+                <span class="legend-item"><i class="dot" style="background-color:#3182f6"></i>매출액</span>
+                <span class="legend-item"><i class="dot" style="background-color:#03b26c"></i>영업이익</span>
+                <span class="legend-item"><i class="dot" style="background-color:#f59f00"></i>(E) 추정치</span>
+              </div>
+              <div class="fin-canvas-box">
+                <canvas id="financials-bar-chart"></canvas>
+              </div>
             </div>
             <div class="table-wrapper">
               <table class="financials-table">
@@ -261,6 +523,7 @@
             <div id="fund-ai-answer" class="chat-thread sidebar-chat">분석 대기 중...</div>
             <div id="fund-quick-questions" class="quick-questions hidden">
               <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="현재 PER·PBR 수준이 초보자가 보기에 부담스러운 편인가요?">PER·PBR 적정성</button>
+              <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="연기금·투신·금융투자 같은 기관별 세부 매동과 공매도 비중·잔고, 프로그램 매매 흐름이 현재 주가에 어떤 영향을 줄지 초보자 눈높이로 설명해 주세요.">기관·공매도·프로그램 영향</button>
               <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="최근 5일·20일 외인/기관 수급 흐름에서 가장 주의해야 할 신호는 무엇인가요?">수급 주의점</button>
               <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="추정치(E) 실적이 예상보다 못 나올 경우 어떤 리스크가 생길까요?">추정치 리스크</button>
               <button type="button" class="quick-q-btn" data-mode="fundamental" data-q="이 종목을 장기 투자 관점으로 볼 때 꼭 체크해야 할 3가지를 알려주세요.">장기 체크포인트</button>
@@ -658,6 +921,6 @@
     </footer>
   </div>
 
-  <script src="{{ url_for('static', filename='app.js', v='wts2') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v='wts4') }}"></script>
 </body>
 </html>
