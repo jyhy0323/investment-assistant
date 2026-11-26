@@ -11,11 +11,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 테마(다크/라이트모드) 초기화 및 전환
   const themeToggleBtn = document.getElementById("theme-toggle-btn");
+  const metaThemeColor = document.getElementById("meta-theme-color");
   const THEME_STORAGE_KEY = "investment_assistant_theme";
   const applyTheme = (theme) => {
     document.documentElement.setAttribute("data-theme", theme);
     if (themeToggleBtn) {
       themeToggleBtn.textContent = theme === "dark" ? "라이트모드" : "다크모드";
+    }
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute("content", theme === "dark" ? "#17171c" : "#ffffff");
     }
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
@@ -1757,6 +1761,61 @@ document.addEventListener("DOMContentLoaded", () => {
       drawFinancialsBarChart(state.fundamental.data.financials);
     }
   });
+
+  // ================= PWA 서비스 워커 등록 & 모바일 앱 설치 =================
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    });
+  }
+
+  let deferredInstallPrompt = null;
+  const pwaInstallBtn = document.getElementById("pwa-install-btn");
+  const pwaModal = document.getElementById("pwa-install-modal");
+  const pwaModalClose = document.getElementById("pwa-modal-close");
+
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+
+  if (isStandalone && pwaInstallBtn) {
+    pwaInstallBtn.classList.add("hidden");
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (pwaInstallBtn && !isStandalone) {
+      pwaInstallBtn.classList.remove("hidden");
+    }
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    if (pwaInstallBtn) pwaInstallBtn.classList.add("hidden");
+    if (pwaModal) pwaModal.classList.add("hidden");
+  });
+
+  if (pwaInstallBtn) {
+    pwaInstallBtn.addEventListener("click", async () => {
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        try {
+          await deferredInstallPrompt.userChoice;
+        } catch (_) {}
+        deferredInstallPrompt = null;
+      } else if (pwaModal) {
+        pwaModal.classList.remove("hidden");
+      }
+    });
+  }
+
+  if (pwaModalClose && pwaModal) {
+    pwaModalClose.addEventListener("click", () => pwaModal.classList.add("hidden"));
+    pwaModal.addEventListener("click", (e) => {
+      if (e.target === pwaModal) pwaModal.classList.add("hidden");
+    });
+  }
 
   fundChatForm.addEventListener("submit", (e) => {
     e.preventDefault();

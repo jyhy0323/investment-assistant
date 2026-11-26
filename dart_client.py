@@ -2,6 +2,7 @@ import io
 import json
 import logging
 import os
+import tempfile
 import time
 import zipfile
 import xml.etree.ElementTree as ET
@@ -14,7 +15,8 @@ load_dotenv()
 logger = logging.getLogger("StockApp")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-CORP_MAP_CACHE = os.path.join(BASE_DIR, "dart_corp_map.json")
+_CACHE_DIR = tempfile.gettempdir() if os.getenv("VERCEL") else BASE_DIR
+CORP_MAP_CACHE = os.path.join(_CACHE_DIR, "dart_corp_map.json")
 CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 7일 캐시
 
 POSITIVE_KEYWORDS = (
@@ -82,10 +84,12 @@ def _load_corp_map(api_key: str) -> tuple[dict | None, str | None]:
             if len(stock_code) == 6 and corp_code:
                 corp_map[stock_code] = corp_code
 
-        with open(CORP_MAP_CACHE, "w", encoding="utf-8") as f:
-            json.dump(corp_map, f, ensure_ascii=False)
-
-        logger.info(f"[DART]      고유번호 매핑 캐시 저장 완료 (상장사 {len(corp_map)}개)")
+        try:
+            with open(CORP_MAP_CACHE, "w", encoding="utf-8") as f:
+                json.dump(corp_map, f, ensure_ascii=False)
+            logger.info(f"[DART]      고유번호 매핑 캐시 저장 완료 (상장사 {len(corp_map)}개)")
+        except OSError:
+            logger.warning("[DART]      캐시 파일 쓰기 권한 없음 — 메모리 결과만 사용합니다.")
         return corp_map, None
     except zipfile.BadZipFile:
         return None, "DART API 키가 유효하지 않거나 응답이 ZIP 형식이 아닙니다."

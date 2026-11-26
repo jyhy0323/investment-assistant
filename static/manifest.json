@@ -1,0 +1,33 @@
+{
+  "name": "AI 투자증권 — 실전 AI 투자 어시스턴트",
+  "short_name": "AI 투자증권",
+  "description": "국내·미국 종목 재무, KRX 기관·공매도·프로그램 수급, 차트 지지·저항선, 거시경제, 포트폴리오 리밸런싱 AI 앱",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#17171c",
+  "theme_color": "#3182f6",
+  "lang": "ko",
+  "categories": ["finance", "business", "productivity"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

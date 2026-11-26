@@ -1,0 +1,12 @@
+.venv
+venv
+__pycache__
+*.pyc
+.env
+.git
+dart_corp_map.json
+stock_analysis_data.json
+stocks.txt
+run.bat
+analyze_stocks.py
+check_stocks.py

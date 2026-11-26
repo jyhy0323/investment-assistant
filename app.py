@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, make_response, render_template, request, send_from_directory
 from dotenv import load_dotenv
 from collector import collect_all, fetch_basic_info
 from technical import collect_technical
@@ -25,6 +25,24 @@ app = Flask(__name__)
 def index():
     """메인 웹페이지(templates/index.html)를 반환한다."""
     return render_template("index.html")
+
+
+@app.route("/manifest.json", methods=["GET"])
+def pwa_manifest():
+    """PWA Web App Manifest를 루트 경로에서도 제공한다."""
+    resp = make_response(send_from_directory(app.static_folder, "manifest.json"))
+    resp.headers["Content-Type"] = "application/manifest+json; charset=utf-8"
+    return resp
+
+
+@app.route("/sw.js", methods=["GET"])
+def pwa_service_worker():
+    """PWA Service Worker를 루트 스코프(/)로 제공한다."""
+    resp = make_response(send_from_directory(app.static_folder, "sw.js"))
+    resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return resp
 
 
 @app.route("/test", methods=["GET"])
